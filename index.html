@@ -1,13 +1,34 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#101d32"><title>Calculadora de estructuras</title>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#0f172a">
+<title>Calculadora de Estructuras</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1423;--panel:#121f32;--line:#2a3b53;--text:#f3f6fb;--muted:#9eacc0;--cyan:#62d5d1;--blue:#70a9ff;--orange:#ffbd79}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -12%,#20395a 0,transparent 55%),var(--bg);color:var(--text);font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}.shell{width:min(1120px,calc(100% - 40px));margin:auto}header{height:82px;border-bottom:1px solid #ffffff12;display:flex;align-items:center}.brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.01em}.mark{height:38px;width:38px;border-radius:12px;background:linear-gradient(140deg,#75e4d4,#65aafa);display:grid;place-items:center;color:#0b1423;font-weight:900;font-size:18px}.top-note{margin-left:auto;color:var(--muted);font-size:13px}main{padding:78px 0 68px}.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}h1{font-size:clamp(38px,6vw,64px);line-height:1.04;letter-spacing:-.045em;margin:16px 0 18px;max-width:760px}.intro{max-width:640px;color:var(--muted);font-size:17px;margin:0}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:48px}.card{--accent:var(--cyan);position:relative;min-height:288px;background:linear-gradient(150deg,#17263c,#101b2d 78%);border:1px solid var(--line);border-radius:20px;padding:25px;display:flex;flex-direction:column;overflow:hidden;transition:transform .18s,border-color .18s,box-shadow .18s}.card:nth-child(2){--accent:var(--blue)}.card:nth-child(3){--accent:var(--orange)}.card:before{content:"";position:absolute;width:200px;height:200px;border-radius:50%;right:-100px;top:-120px;background:var(--accent);opacity:.07;filter:blur(3px)}.card:hover,.card:focus-visible{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 18px 46px #0004;outline:none}.icon{height:54px;width:54px;border-radius:16px;color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);display:grid;place-items:center}.icon svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.tag{margin-top:25px;color:var(--accent);font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.card h2{font-size:25px;letter-spacing:-.025em;margin:7px 0 8px}.card p{color:var(--muted);font-size:14px;margin:0 0 22px;max-width:290px}.go{margin-top:auto;display:flex;align-items:center;justify-content:space-between;color:var(--accent);font-size:14px;font-weight:700}.arrow{font-size:20px;transition:transform .18s}.card:hover .arrow{transform:translateX(4px)}.foot{border-top:1px solid #ffffff12;padding:20px 0 28px;display:flex;justify-content:space-between;gap:16px;color:#8392a8;font-size:12px}@media(max-width:800px){.cards{grid-template-columns:1fr 1fr}.card:last-child{grid-column:1/-1;min-height:240px}main{padding-top:58px}}@media(max-width:560px){.shell{width:min(100% - 28px,1120px)}header{height:68px}.top-note{display:none}main{padding:50px 0}.cards{grid-template-columns:1fr;margin-top:32px}.card:last-child{grid-column:auto}.card{min-height:250px}.foot{display:block}.foot span{display:block;margin-top:6px}}
-</style></head>
-<body><header><div class="shell" style="display:flex;align-items:center;width:100%"><a class="brand" href="./index.html"><span class="mark">E</span><span>Estructuras</span></a><span class="top-note">Herramientas de análisis estructural</span></div></header>
-<main class="shell"><div class="eyebrow">Área de trabajo</div><h1>¿Qué quieres analizar?</h1><p class="intro">Elige un tipo de estructura para abrir su herramienta de cálculo.</p>
+:root{--bg:#f1f5f9;--card:#fff;--text:#0f172a;--muted:#475569;--border:#cbd5e1;--blue:#0284c7}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif}
+header{background:#0f172a;color:#fff;padding:18px 24px;box-shadow:0 2px 5px #0f172a1a}
+header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em}
+main{width:min(1050px,calc(100% - 32px));margin:50px auto}
+h2{font-size:26px;letter-spacing:-.025em;margin:0 0 7px} .intro{color:var(--muted);margin:0 0 24px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{min-height:210px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s}
+.card:hover,.card:focus-visible{border-color:var(--blue);box-shadow:0 4px 12px #0f172a12;outline:none}
+.card h3{font-size:19px;margin:0 0 8px}.card p{font-size:14px;color:var(--muted);margin:0 0 20px}
+.kind{font-size:12px;color:var(--muted);margin-bottom:18px}
+.go{margin-top:auto;color:var(--blue);font-size:14px;font-weight:700}
+@media(max-width:750px){main{margin:32px auto}.cards{grid-template-columns:1fr}.card{min-height:unset}.go{margin-top:0}}
+</style>
+</head>
+<body>
+<header><h1>Calculadora de Estructuras</h1></header>
+<main>
+<h2>¿Qué quieres analizar?</h2>
+<p class="intro">Selecciona el tipo de estructura para abrir su calculadora.</p>
 <nav class="cards" aria-label="Tipos de análisis">
-<a class="card" href="./cerchas.html"><span class="icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 26 11 9l10 17L28 5M3 26h25M11 9l17 17M11 9h17M3 26 21 9"/></svg></span><span class="tag">Análisis matricial 2D</span><h2>Cerchas</h2><p>Define nodos, barras, apoyos y cargas. Consulta axiles, reacciones y deformada.</p><span class="go">Abrir calculadora <span class="arrow">→</span></span></a>
-<a class="card" href="./vigas.html"><span class="icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 9h24M6 9v16m20-16v16M3 25h6m14 0h6M8 17c3 0 3 6 8 6s5-6 8-6"/><path d="M10 3v5m6-5v5m6-5v5"/></svg></span><span class="tag">Cortante · momento · flecha</span><h2>Vigas</h2><p>Analiza vigas con apoyos y cargas puntuales o distribuidas a lo largo del vano.</p><span class="go">Abrir calculadora <span class="arrow">→</span></span></a>
-<a class="card" href="./porticos.html"><span class="icon"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 27V5h22v22M5 13h22M11 5v8m10-8v8M5 27h22M10 27V18h12v9"/></svg></span><span class="tag">En preparación</span><h2>Pórticos</h2><p>El espacio queda preparado para incorporar el análisis de pórticos.</p><span class="go">Ver sección <span class="arrow">→</span></span></a></nav></main>
-<footer class="shell foot"><span>Calculadora de estructuras</span><span>Proyecto de Alejandro Morales</span></footer></body></html>
+<a class="card" href="./cerchas.html"><span class="kind">ANÁLISIS MATRICIAL 2D</span><h3>Cerchas</h3><p>Define nodos, barras, apoyos y cargas. Consulta axiles, reacciones y deformada.</p><span class="go">Abrir calculadora →</span></a>
+<a class="card" href="./vigas.html"><span class="kind">CORTANTE · MOMENTO · FLECHA</span><h3>Vigas</h3><p>Analiza vigas con apoyos y cargas puntuales o distribuidas.</p><span class="go">Abrir calculadora →</span></a>
+<a class="card" href="./porticos.html"><span class="kind">EN PREPARACIÓN</span><h3>Pórticos</h3><p>Sección reservada para una futura herramienta de análisis de pórticos.</p><span class="go">Abrir sección →</span></a>
+</nav>
+</main>
+</body>
+</html>
