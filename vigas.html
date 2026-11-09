@@ -100,7 +100,7 @@ function solve(){
  if(!uf)return fail("La matriz es singular: revisa los apoyos y la estabilidad de la viga.");
  const U=new Float64Array(nd);free.forEach((d,i)=>U[d]=uf[i]);const R=new Float64Array(nd);
  for(let r=0;r<nd;r++){let sum=0;for(let c=0;c<nd;c++)sum+=K[r][c]*U[c];R[r]=F[r]-sum}
- const reactions=supports.map(s=>{const i=indexAt(s.x);return {x:s.x,type:s.type,ry:R[2*i],m:s.type==="Fixed"?R[2*i+1]:0}});
+ const reactions=supports.map(s=>{const i=indexAt(s.x);return {x:s.x,type:s.type,ry:R[2*i],m:s.type==="Fixed"?-R[2*i+1]:0}});
  const statics=(x)=>{
   let V=0,M=0;
   for(const r of reactions)if(r.x<x+1e-9){V+=r.ry;M+=r.ry*(x-r.x);if(r.type==="Fixed")M+=r.m}
@@ -114,7 +114,7 @@ function solve(){
  function interp(x){let e=xs.findIndex((v,i)=>i<xs.length-1&&x>=v-1e-10&&x<=xs[i+1]+1e-10);if(e<0)e=n-2;const le=xs[e+1]-xs[e],r=Math.max(0,Math.min(1,(x-xs[e])/le)),v1=U[2*e],t1=U[2*e+1],v2=U[2*e+2],t2=U[2*e+3];const a=1-3*r*r+2*r*r*r,b=le*(r-2*r*r+r*r*r),c=3*r*r-2*r*r*r,d=le*(-r*r+r*r*r),da=(-6*r+6*r*r)/le,db=1-4*r+3*r*r,dc=(6*r-6*r*r)/le,dd=-2*r+3*r*r;return {v:a*v1+b*t1+c*v2+d*t2,theta:da*v1+db*t1+dc*v2+dd*t2}}
  const samples=Array.from({length:401},(_,i)=>{const x=L*i/400,s=statics(x),u=interp(x);return {x,V:s.V,M:s.M,v:u.v,theta:u.theta}});
  const ext=(key,abs=false)=>{let min=samples[0],max=samples[0];for(const p of samples){if(p[key]<min[key])min=p;if(p[key]>max[key])max=p}let chosen=abs?samples.reduce((a,b)=>Math.abs(b[key])>Math.abs(a[key])?b:a):max;return {min,max,abs:chosen}};
- const totalDown=loads.reduce((sum,l)=>sum+(l.type==="Point"?l.v0:l.type==="Distributed"?.5*(l.v0+l.v1)*(l.x1-l.x0):0),0);
+ const totalDown=loads.reduce((sum,l)=>sum+(l.type==="Point"?l.v0:l.type==="Distributed"?0.5*(l.v0+l.v1)*(l.x1-l.x0):0),0);
  const totalMoment=loads.reduce((sum,l)=>{if(l.type==="Point")return sum+l.v0*l.x0;if(l.type==="Moment")return sum+l.v0;const d=l.x1-l.x0,g=(l.v1-l.v0)/d,q=l.v0*d+.5*g*d*d,first=l.v0*d*d/2+g*d*d*d/3;return sum+l.x0*q+first},0);
  const sumR=reactions.reduce((a,r)=>a+r.ry,0),sumRM=reactions.reduce((a,r)=>a+r.ry*r.x+r.m,0),errV=totalDown-sumR,errM=totalMoment-sumRM;
  last={L,xs,U,reactions,samples,extV:ext("V",true),extM:ext("M",true),extv:ext("v",true),extT:ext("theta",true),errV,errM,totalDown,totalMoment};
