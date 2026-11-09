@@ -1,34 +1,33 @@
 # Calculadora de estructuras
 
-Aplicación web para modelar y analizar estructuras planas. El proyecto parte de una calculadora de cerchas 2D y se ampliará para incorporar vigas y pórticos.
+Aplicación web para análisis de estructuras planas. El menú principal ofrece tres módulos: **Cerchas**, **Vigas** y **Pórticos**.
 
 ## Autoría
 
-**Autor del proyecto: Alejandro Morales.** El código inicial fue creado por un compañero de clase y se ha incorporado a este repositorio con su autorización para atribuir el proyecto a Alejandro, modificarlo y ampliarlo.
+**Autor del proyecto: Alejandro Morales.** El código inicial de cerchas fue creado por un compañero de clase y se incorporó con su autorización para atribuir el proyecto a Alejandro, modificarlo y ampliarlo.
 
-## Uso actual
+## Abrir la aplicación
 
-Abre [index.html](index.html) directamente en un navegador moderno. No necesita instalación ni dependencias externas.
+Abre [index.html](index.html) en un navegador moderno. No requiere instalación ni dependencias externas.
 
-La aplicación permite definir:
+- **Cerchas:** [cerchas.html](cerchas.html), la calculadora existente de método matricial 2D.
+- **Vigas:** [vigas.html](vigas.html), módulo inicial inspirado en el flujo de DSNWinbeam.
+- **Pórticos:** [porticos.html](porticos.html), sección vacía reservada para una futura versión.
 
-- Nodos con coordenadas X e Y en metros.
-- Barras con módulo de elasticidad E en GPa y área en m².
-- Apoyos articulados o deslizantes.
-- Cargas nodales Fx y Fy en kN.
+## Módulo de vigas
 
-Calcula desplazamientos, reacciones y esfuerzos axiles. El modelo actual representa cerchas ideales 2D con análisis estático lineal; no incluye flexión ni pandeo.
+Introduce longitud, módulo E, inercia, apoyos y cargas. Permite cargas puntuales, momentos y cargas distribuidas uniformes o lineales. Informa reacciones, equilibrio, cortante, momento flector, giro y flecha.
 
-## Desarrollo
+El solver usa elementos de viga Euler–Bernoulli y rigidez directa, con subdivisiones de cálculo y nodos adicionales en posiciones de cargas y apoyos. Es una primera versión funcional; todavía no replica todas las opciones de DSNWinbeam ni se ha validado para diseño profesional. La referencia consultada describe el método de rigidez directa y los resultados de equilibrio y diagramas del programa: [FAQ de DSNWinbeam](https://dsnwinbeam.weebly.com/faq.html).
 
-El código actual está contenido en `index.html` para mantener intacta la calculadora recibida. La siguiente etapa será separar la interfaz, el modelo estructural, el solver y el dibujo para que los nuevos tipos de elemento puedan compartir la aplicación:
+## Hoja de ruta
 
-1. Mantener y documentar el solver de cerchas.
-2. Diseñar grados de libertad nodales que incluyan giro.
-3. Añadir elementos de viga y pórtico con rigidez axial y a flexión.
-4. Incorporar casos de referencia para contrastar los resultados.
-5. Añadir guardado e importación/exportación de modelos.
+1. Contrastar los resultados del módulo de vigas con casos analíticos y referencias independientes.
+2. Separar interfaz, modelo, solver y gráficos en módulos.
+3. Incorporar más opciones de apoyos, tipos de sección y edición de cargas.
+4. Añadir guardado e importación/exportación de modelos.
+5. Implementar el análisis de pórticos 2D compartiendo el solver y la visualización.
 
 ## Alcance
 
-Esta herramienta es educativa y de apoyo al cálculo. Sus resultados deben revisarse con casos de referencia y con criterio profesional antes de usarse para decisiones de diseño estructural.
+La calculadora actual es educativa y de apoyo al cálculo. Sus resultados deben contrastarse con casos de referencia y criterio profesional antes de usarse para decisiones de diseño estructural.
