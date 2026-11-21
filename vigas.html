@@ -21,6 +21,21 @@ main{padding:0 0 42px}.title-row{display:flex;justify-content:space-between;alig
 @media(max-width:1050px){.grid{grid-template-columns:340px minmax(0,1fr)}.hero-result{grid-template-columns:1fr 1fr}.chart-toolbar{gap:8px}}
 @media(max-width:780px){.wrap{width:calc(100% - 22px)}.grid{grid-template-columns:1fr}.title-row{align-items:flex-start;flex-direction:column}.plot{height:188px}.table-wrap{max-height:190px}}
 @media(max-width:440px){.field-grid{grid-template-columns:1fr 1fr}.hero-result{grid-template-columns:1fr 1fr}.crumb{display:none}.title-row h1{font-size:23px}.chart-toolbar{gap:7px}.load-type{width:120px}}
+
+.procedure-card{margin-top:14px;background:#fff;border:1px solid #cbd5e1;border-radius:9px;box-shadow:0 1px 3px #0f172a0b;overflow:hidden}
+.procedure-card summary{cursor:pointer;list-style:none;padding:13px 15px;font-weight:700;font-size:14px;color:#1e293b}
+.procedure-card summary::-webkit-details-marker{display:none}
+.procedure-card summary:after{content:"+";float:right;color:#0284c7;font-size:18px;line-height:1}
+.procedure-card[open] summary:after{content:"−"}
+.procedure-content{border-top:1px solid #e2e8f0;padding:14px 16px 17px;color:#334155;font-size:12px}
+.procedure-content h3{font-size:13px;color:#0f172a;margin:16px 0 6px}
+.procedure-content h3:first-child{margin-top:0}
+.procedure-content p{margin:5px 0;line-height:1.6}
+.procedure-content ul{margin:5px 0;padding-left:20px}
+.procedure-content li{margin:4px 0}
+.equation{margin:7px 0;padding:9px 11px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;overflow-x:auto;color:#0f172a;font:12px/1.65 Consolas,"SFMono-Regular",monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.procedure-note{color:#64748b;font-size:11px}
+
 </style>
 <link rel="stylesheet" href="./estilo.css">
 </head>
@@ -55,6 +70,10 @@ main{padding:0 0 42px}.title-row{display:flex;justify-content:space-between;alig
 <div class="foot">Modelo de viga prismática, elástico lineal, con pequeñas deformaciones. Herramienta educativa; contrasta los resultados antes de usarlos en diseño.</div>
 </section>
 </div>
+<details class="procedure-card" id="procedureBox">
+<summary>Procedimiento de cálculo con los valores introducidos</summary>
+<div class="procedure-content" id="procedureContent"><p class="procedure-note">Pulsa Calcular para generar el procedimiento con los datos de la viga.</p></div>
+</details>
 </main>
 <script>
 "use strict";
@@ -82,9 +101,10 @@ function renderLoads(){
  body.querySelectorAll("[data-remove-load]").forEach(el=>el.addEventListener("click",()=>{loads=loads.filter(x=>x.id!==Number(el.dataset.removeLoad));renderLoads();invalidate()}));
 }
 function resetSummary(){ $("extrema").innerHTML='<div class="metric"><div class="label">Cortante máx.</div><strong>—</strong><small>kN</small></div><div class="metric"><div class="label">Momento máx.</div><strong>—</strong><small>kN·m</small></div><div class="metric"><div class="label">Flecha máx.</div><strong>—</strong><small>mm</small></div><div class="metric"><div class="label">Giro máx.</div><strong>—</strong><small>rad</small></div>'}
-function invalidate(){last=null;$("modelStatus").textContent="Pendiente";resetSummary();$("reactionsBody").innerHTML='<tr><td colspan="4" style="text-align:center;color:#64748b">Modelo modificado. Vuelve a calcular.</td></tr>';$("equilibrium").textContent="Equilibrio global: —";drawChart(null);drawBeamDiagram(null)}
+function resetProcedure(){ $("procedureContent").innerHTML='<p class="procedure-note">Los resultados han cambiado. Vuelve a calcular para actualizar el procedimiento.</p>'}
+function invalidate(){last=null;$("modelStatus").textContent="Pendiente";resetSummary();resetProcedure();$("reactionsBody").innerHTML='<tr><td colspan="4" style="text-align:center;color:#64748b">Modelo modificado. Vuelve a calcular.</td></tr>';$("equilibrium").textContent="Equilibrio global: —";drawChart(null);drawBeamDiagram(null)}
 function number(id){return Number($(id).value)}
-function fail(msg){$("errorBox").textContent=msg;$("errorBox").style.display="block";$("modelStatus").textContent="Revisar modelo";last=null;resetSummary();drawChart(null);drawBeamDiagram(null)}
+function fail(msg){$("errorBox").textContent=msg;$("errorBox").style.display="block";$("modelStatus").textContent="Revisar modelo";last=null;resetSummary();resetProcedure();drawChart(null);drawBeamDiagram(null)}
 function gaussian(A,b){
  const n=b.length;let scale=0;for(let i=0;i<n;i++)scale=Math.max(scale,Math.abs(A[i][i]));if(!scale)return null;
  const tol=scale*1e-11;
@@ -141,17 +161,73 @@ function solve(){
  const ext=(key,abs=false)=>{let min=samples[0],max=samples[0];for(const p of samples){if(p[key]<min[key])min=p;if(p[key]>max[key])max=p}let chosen=abs?samples.reduce((a,b)=>Math.abs(b[key])>Math.abs(a[key])?b:a):max;return {min,max,abs:chosen}};
  const totalDown=loads.reduce((sum,l)=>sum+(l.type==="Point"?l.v0:l.type==="Distributed"?0.5*(l.v0+l.v1)*(l.x1-l.x0):0),0);
  const totalMoment=loads.reduce((sum,l)=>{if(l.type==="Point")return sum+l.v0*l.x0;if(l.type==="Moment")return sum+l.v0;const d=l.x1-l.x0,g=(l.v1-l.v0)/d,q=l.v0*d+.5*g*d*d,first=l.v0*d*d/2+g*d*d*d/3;return sum+l.x0*q+first},0);
- const sumR=reactions.reduce((a,r)=>a+r.ry,0),sumRM=reactions.reduce((a,r)=>a+r.ry*r.x+r.m,0),errV=totalDown-sumR,errM=totalMoment-sumRM;
+ const sumR=reactions.reduce((a,r)=>a+r.ry,0),sumReactionMoment=reactions.reduce((a,r)=>a+r.ry*r.x,0),sumSupportCouples=reactions.reduce((a,r)=>a+r.m,0),errV=totalDown-sumR,errM=totalMoment+sumSupportCouples-sumReactionMoment;
  last={L,xs,U,reactions,samples,extV:ext("V",true),extM:ext("M",true),extv:ext("v",true),extT:ext("theta",true),errV,errM,totalDown,totalMoment};
  renderResults();drawChart(last);drawBeamDiagram(last);
 }
 function fmt(v,d=3){return Number.isFinite(v)?v.toFixed(d):"—"}
+function renderProcedure(){
+ const host=$("procedureContent"),wasOpen=$("procedureBox").open;
+ const L=number("length"),Ein=number("elasticity"),Iin=number("inertia"),E=Ein*1e6,I=Iin*1e-8,EI=E*I;
+ const signed=v=>(v<0?"−":"+")+fmt(Math.abs(v),3);
+ const loadDetails=loads.map((l,i)=>{
+  const id=i+1;
+  if(l.type==="Point")return '<li><b>P'+id+'</b> = '+signed(l.v0)+' kN en x = '+fmt(l.x0,3)+' m.</li>';
+  if(l.type==="Moment")return '<li><b>M'+id+'</b> = '+signed(l.v0)+' kN·m en x = '+fmt(l.x0,3)+' m (positivo horario).</li>';
+  const d=l.x1-l.x0,g=(l.v1-l.v0)/d,Q=.5*(l.v0+l.v1)*d,J=.5*l.v0*d*d+(l.v1-l.v0)*d*d/3;
+  return '<li><b>q'+id+'</b>: de '+signed(l.v0)+' a '+signed(l.v1)+' kN/m entre x = '+fmt(l.x0,3)+' y '+fmt(l.x1,3)+' m; g = (q<sub>1</sub>−q<sub>0</sub>)/l = '+fmt(g,4)+' kN/m²; Q = (q<sub>0</sub>+q<sub>1</sub>)l/2 = '+fmt(Q,4)+' kN; J<sub>a</sub> = '+fmt(J,4)+' kN·m.</li>';
+ }).join("");
+ const supportDetails=last.reactions.map((r,i)=>'<li><b>Apoyo '+(i+1)+'</b> en x = '+fmt(r.x,3)+' m: R<sub>y</sub> = '+signed(r.ry)+' kN'+(r.type==="Fixed"?'; M<sub>R</sub> = '+signed(r.m)+' kN·m (horario positivo)':'')+'.</li>').join("");
+ const pointLoads=loads.filter(l=>l.type==="Point"),pointMoments=loads.filter(l=>l.type==="Moment"),distributed=loads.filter(l=>l.type==="Distributed");
+ const verticalTerms=loads.map(l=>l.type==="Point"?signed(l.v0):l.type==="Distributed"?signed(.5*(l.v0+l.v1)*(l.x1-l.x0)):null).filter(Boolean);
+ const forceExpr=verticalTerms.length?verticalTerms.join(" "):"0";
+ const momentTerms=loads.map(l=>{
+  if(l.type==="Point")return '('+fmt(l.v0,3)+'·'+fmt(l.x0,3)+')';
+  if(l.type==="Moment")return '('+fmt(l.v0,3)+')';
+  const d=l.x1-l.x0,Q=.5*(l.v0+l.v1)*d,J=.5*l.v0*d*d+(l.v1-l.v0)*d*d/3;
+  return '('+fmt(l.x0,3)+'·'+fmt(Q,3)+' + '+fmt(J,3)+')';
+ });
+ const reactionMomentTerms=last.reactions.map(r=>'('+fmt(r.ry,3)+'·'+fmt(r.x,3)+')');
+ const Vterms=last.reactions.map(r=>'('+signed(r.ry)+') H(x−'+fmt(r.x,3)+')');
+ pointLoads.forEach(l=>Vterms.push('− ('+fmt(l.v0,3)+') H(x−'+fmt(l.x0,3)+')'));
+ distributed.forEach((l,i)=>Vterms.push('− Q'+(i+1)+'(x)'));
+ const Mterms=last.reactions.map(r=>'('+signed(r.ry)+') (x−'+fmt(r.x,3)+') H(x−'+fmt(r.x,3)+')');
+ last.reactions.filter(r=>r.type==="Fixed").forEach(r=>Mterms.push('('+signed(r.m)+') H(x−'+fmt(r.x,3)+')'));
+ pointLoads.forEach(l=>Mterms.push('− ('+fmt(l.v0,3)+') (x−'+fmt(l.x0,3)+') H(x−'+fmt(l.x0,3)+')'));
+ pointMoments.forEach(l=>Mterms.push('− ('+fmt(l.v0,3)+') H(x−'+fmt(l.x0,3)+')'));
+ distributed.forEach((l,i)=>Mterms.push('− C'+(i+1)+'(x)'));
+ const distDefs=distributed.map((l,i)=>{
+  const d=l.x1-l.x0,g=(l.v1-l.v0)/d;
+  return 'd'+(i+1)+'(x) = min(max(x−'+fmt(l.x0,3)+', 0), '+fmt(d,3)+') m; Q'+(i+1)+'(x) = ('+fmt(l.v0,3)+')d'+(i+1)+' + 0.5('+fmt(g,4)+')d'+(i+1)+'² kN; C'+(i+1)+'(x) = (x−'+fmt(l.x0,3)+')Q'+(i+1)+' − 0.5('+fmt(l.v0,3)+')d'+(i+1)+'² − ('+fmt(g,4)+')d'+(i+1)+'³/3 kN·m.';
+ }).join('<br>');
+ const loadInfo=loadDetails||'<li>No hay cargas aplicadas.</li>';
+ const supportInfo=supportDetails||'<li>No hay apoyos definidos.</li>';
+ const momentLoadExpr=momentTerms.length?momentTerms.join(' + '):'0';
+ const supportMoment=last.reactions.reduce((s,r)=>s+r.m,0);
+ const reactionMomentExpr=reactionMomentTerms.length?reactionMomentTerms.join(' + '):'0';
+ const html=
+ '<h3>1. Modelo de rigidez</h3>'+
+ '<p>Viga de longitud L = <b>'+fmt(L,3)+' m</b>, E = <b>'+fmt(Ein,3)+' GPa</b>, I = <b>'+fmt(Iin,3)+' cm⁴</b>. Conversiones: E = '+fmt(E,3)+' kN/m², I = '+fmt(Iin*1e-8,8)+' m⁴ y EI = <b>'+fmt(EI,5)+' kN·m²</b>. La malla usada tiene '+(last.xs.length-1)+' elementos Euler–Bernoulli.</p>'+
+ '<div class="equation">K<sub>ff</sub> u<sub>f</sub> = F<sub>f</sub><br>k<sub>e</sub> = (EI/l<sub>e</sub>³) · [[12, 6l, −12, 6l], [6l, 4l², −6l, 2l²], [−12, −6l, 12, −6l], [6l, 2l², −6l, 4l²]]<br>f<sub>e,q</sub> = ∫ N(x)<sup>T</sup> q(x) dx</div>'+
+ '<p>Se restringen los desplazamientos y giros definidos por los apoyos. Las cargas distribuidas se convierten en fuerzas nodales equivalentes integrando las funciones de forma cúbicas.</p>'+
+ '<h3>2. Cargas introducidas</h3><ul>'+loadInfo+'</ul>'+
+ '<h3>3. Reacciones</h3><div class="equation">r = K u − F<br>R<sub>y</sub> = F<sub>v</sub> − (Ku)<sub>v</sub> (positiva hacia arriba)<br>M<sub>R</sub> = (Ku)<sub>θ</sub> − F<sub>θ</sub> (positivo horario)</div><ul>'+supportInfo+'</ul>'+
+ '<h3>4. Comprobación del equilibrio global</h3>'+
+ '<div class="equation">ΣF<sub>abajo</sub> = ΣP + ΣQ = '+forceExpr+' = '+fmt(last.totalDown,4)+' kN<br>ΣM<sub>cargas, x=0</sub> = Σ(P·x) + Σ(M) + Σ(a·Q + J<sub>a</sub>) = '+momentLoadExpr+' = '+fmt(last.totalMoment,4)+' kN·m<br>Error vertical = ΣF<sub>abajo</sub> − ΣR<sub>y</sub> = '+fmt(last.totalDown,4)+' − '+fmt(last.reactions.reduce((s,r)=>s+r.ry,0),4)+' = <b>'+fmt(last.errV,6)+' kN</b><br>Error de momento = ΣM<sub>cargas</sub> + ΣM<sub>R</sub> − Σ(R<sub>y</sub>·x) = '+fmt(last.totalMoment,4)+' + ('+fmt(supportMoment,4)+') − ('+reactionMomentExpr+') = <b>'+fmt(last.errM,6)+' kN·m</b></div>'+
+ '<p class="procedure-note">Convención: cargas hacia abajo y momentos horarios son positivos; reacciones verticales hacia arriba son positivas. J<sub>a</sub> es el primer momento de la carga distribuida respecto a su inicio.</p>'+
+ '<h3>5. Cortante y momento en un corte</h3>'+
+ '<div class="equation">Para x distinto de una carga o apoyo, H(x−a)=1 si x&gt;a y 0 si x&lt;a.<br>V(x) = '+(Vterms.length?Vterms.join(' + '):'0')+'<br>M(x) = '+(Mterms.length?Mterms.join(' + '):'0')+'</div>'+
+ (distDefs?'<p class="equation">'+distDefs+'</p>':'')+
+ '<p class="procedure-note">Los términos de reacción y carga muestran los valores de este modelo. d<sub>i</sub>(x) limita cada carga distribuida a la parte situada a la izquierda del corte.</p>'+
+ '<p class="procedure-note">Referencias: <a href="https://web.mit.edu/16.20/homepage/7_SimpleBeamTheory/SimpleBeamTheory_files/module_7_with_solutions_hide.pdf" target="_blank" rel="noopener">MIT, Simple Beam Theory</a> · <a href="https://emweb.unl.edu/negahban/em325/10a-shear-and-bending-moment/Shear%20stress%20in%20beams.htm" target="_blank" rel="noopener">University of Nebraska–Lincoln, Shear and Bending Moment</a>.</p>';
+ host.innerHTML=html;host.closest("details").open=wasOpen;
+}
 function renderResults(){
  const e=last.extV.abs,m=last.extM.abs,v=last.extv.abs,t=last.extT.abs;
  $("extrema").innerHTML=[["Cortante máx.",e.V,"kN",e.x],["Momento máx.",m.M,"kN·m",m.x],["Flecha máx.",v.v*1000,"mm",v.x],["Giro máx.",t.theta,"rad",t.x]].map(a=>`<div class="metric"><div class="label">${a[0]}</div><strong>${fmt(a[1],3)}</strong><small>${a[2]} · x = ${fmt(a[3],3)} m</small></div>`).join("");
  $("reactionsBody").innerHTML=last.reactions.map(r=>`<tr><td>${fmt(r.x,3)}</td><td>${r.type==="Fixed"?"Empotrado":r.type==="Pin"?"Articulado":"Rodillo"}</td><td>${fmt(r.ry,3)}</td><td>${r.type==="Fixed"?fmt(r.m,3):"—"}</td></tr>`).join("");
  $("equilibrium").innerHTML=`Equilibrio: cargas verticales = ${fmt(last.totalDown,4)} kN; reacciones = ${fmt(last.reactions.reduce((s,r)=>s+r.ry,0),4)} kN; error vertical = <b>${fmt(last.errV,6)} kN</b>. Momento respecto a x=0: error = <b>${fmt(last.errM,6)} kN·m</b>.`;
- $("modelStatus").textContent="Resuelto";
+ $("modelStatus").textContent="Resuelto";renderProcedure();
 }
 function drawChart(data){
  $("rotationPanel").hidden=!$("rotationToggle").checked;
