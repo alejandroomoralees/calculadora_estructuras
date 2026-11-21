@@ -1,22 +1,29 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#0f172a">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#14202B">
 <title>Calculadora de Estructuras</title>
+<link rel="stylesheet" href="./estilo.css">
 <style>
-:root{--bg:#f1f5f9;--card:#fff;--text:#0f172a;--muted:#475569;--border:#cbd5e1;--blue:#0284c7}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif}
-header{background:#0f172a;color:#fff;padding:18px 24px;box-shadow:0 2px 5px #0f172a1a}
-header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em}
-main{width:min(1050px,calc(100% - 32px));margin:50px auto}
-h2{font-size:26px;letter-spacing:-.025em;margin:0 0 7px} .intro{color:var(--muted);margin:0 0 24px}
-.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.card{min-height:210px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;display:flex;flex-direction:column;transition:border-color .15s,box-shadow .15s}
-.card:hover,.card:focus-visible{border-color:var(--blue);box-shadow:0 4px 12px #0f172a12;outline:none}
-.card h3{font-size:19px;margin:0 0 8px}.card p{font-size:14px;color:var(--muted);margin:0 0 20px}
-.kind{font-size:12px;color:var(--muted);margin-bottom:18px}
-.go{margin-top:auto;color:var(--blue);font-size:14px;font-weight:700}
-@media(max-width:750px){main{margin:32px auto}.cards{grid-template-columns:1fr}.card{min-height:unset}.go{margin-top:0}}
+body{margin:0}
+header{padding:18px 24px}
+header h1{margin:0;font-size:21px}
+main{width:min(1050px,calc(100% - 32px));margin:48px auto}
+h2{font-size:28px;margin:0 0 8px}
+.intro{color:var(--tinta-2);margin:0 0 28px;max-width:60ch}
+.laminas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.lamina{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--linea);border-radius:6px;color:var(--tinta);text-decoration:none;overflow:hidden}
+.lamina:hover,.lamina:focus-visible{border-color:var(--acero);outline:2px solid var(--acero);outline-offset:0}
+.dibujo{display:block;width:100%;height:auto;background:#fff;border-bottom:1px solid var(--linea);color:var(--tinta)}
+.dibujo .carga{stroke:var(--acero)}
+.texto{display:flex;flex-direction:column;flex:1;padding:18px 20px 20px}
+.texto h3{font-size:20px;margin:0 0 8px}
+.texto p{font-size:15px;color:var(--tinta-2);margin:0 0 20px}
+.tipo{font-size:13px;color:var(--tinta-2);margin-bottom:6px}
+.ir{margin-top:auto;color:var(--acero);font-size:15px;font-weight:700}
+.lamina.pendiente{border-style:dashed;background:transparent}
+.lamina.pendiente .dibujo{opacity:.55}
+@media(max-width:750px){main{margin:32px auto}.laminas{grid-template-columns:1fr}.ir{margin-top:0}}
 </style>
 </head>
 <body>
@@ -24,10 +31,35 @@ h2{font-size:26px;letter-spacing:-.025em;margin:0 0 7px} .intro{color:var(--mute
 <main>
 <h2>¿Qué quieres analizar?</h2>
 <p class="intro">Selecciona el tipo de estructura para abrir su calculadora.</p>
-<nav class="cards" aria-label="Tipos de análisis">
-<a class="card" href="./cerchas.html"><span class="kind">ANÁLISIS MATRICIAL 2D</span><h3>Cerchas</h3><p>Define nodos, barras, apoyos y cargas. Consulta axiles, reacciones y deformada.</p><span class="go">Abrir calculadora →</span></a>
-<a class="card" href="./vigas.html"><span class="kind">CORTANTE · MOMENTO · FLECHA</span><h3>Vigas</h3><p>Analiza vigas con apoyos y cargas puntuales o distribuidas.</p><span class="go">Abrir calculadora →</span></a>
-<a class="card" href="./porticos.html"><span class="kind">EN PREPARACIÓN</span><h3>Pórticos</h3><p>Sección reservada para una futura herramienta de análisis de pórticos.</p><span class="go">Abrir sección →</span></a>
+<nav class="laminas" aria-label="Tipos de análisis">
+
+<a class="lamina" href="./cerchas.html">
+<svg class="dibujo" viewBox="0 0 240 110" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+<path d="M30 80H210M75 40H165M30 80L75 40M165 40L210 80M75 40V80M120 40V80M165 40V80M75 80L120 40M165 80L120 40"/>
+<path d="M30 80L21 96H39Z"/><circle cx="210" cy="88" r="6"/><path d="M199 98H221"/>
+<path class="carga" d="M120 8V32M114 26L120 34L126 26"/>
+</svg>
+<span class="texto"><span class="tipo">Análisis matricial 2D</span><h3>Cerchas</h3><p>Define nodos, barras, apoyos y cargas. Consulta axiles, reacciones y deformada.</p><span class="ir">Abrir calculadora</span></span>
+</a>
+
+<a class="lamina" href="./vigas.html">
+<svg class="dibujo" viewBox="0 0 240 110" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+<path stroke-width="4" d="M30 62H210"/>
+<path d="M30 64L21 80H39Z"/><circle cx="210" cy="72" r="6"/><path d="M199 82H221"/>
+<path class="carga" d="M30 28H210M30 28V54M26 48L30 56L34 48M66 28V54M62 48L66 56L70 48M102 28V54M98 48L102 56L106 48M138 28V54M134 48L138 56L142 48M174 28V54M170 48L174 56L178 48M210 28V54M206 48L210 56L214 48"/>
+</svg>
+<span class="texto"><span class="tipo">Cortante, momento y flecha</span><h3>Vigas</h3><p>Analiza vigas con apoyos y cargas puntuales o distribuidas.</p><span class="ir">Abrir calculadora</span></span>
+</a>
+
+<a class="lamina pendiente" href="./porticos.html">
+<svg class="dibujo" viewBox="0 0 240 110" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+<path stroke-width="4" d="M60 96V46H180V96"/>
+<path d="M48 98H72M168 98H192"/>
+<path class="carga" d="M16 46H52M44 40L54 46L44 52"/>
+</svg>
+<span class="texto"><span class="tipo">En preparación</span><h3>Pórticos</h3><p>Sección reservada para una futura herramienta de análisis de pórticos.</p><span class="ir">Abrir sección</span></span>
+</a>
+
 </nav>
 </main>
 </body>

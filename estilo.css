@@ -1,0 +1,143 @@
+/*
+  Estilo compartido de la Calculadora de estructuras.
+  Se carga después del <style> de cada página y solo cambia la apariencia:
+  no modifica ids, clases, estructura ni JavaScript.
+
+  Dirección: papel de delineante. Fondo con rejilla, tinta oscura y un único
+  azul acero. Los colores de los diagramas (tracción, compresión, cargas,
+  reacciones) se dejan como estaban porque los dibuja el JS.
+*/
+
+:root{
+  --papel:#EEF1F4;
+  --panel:#FBFCFD;
+  --tinta:#14202B;
+  --tinta-2:#4A5967;
+  --linea:#C3CCD6;
+  --rejilla:#E2E7EC;
+  --acero:#0B5C8A;
+  --acero-2:#084A70;
+  --alerta:#B42318;
+  --f-titulo:"Bahnschrift","DIN Alternate","Segoe UI Semibold","Segoe UI",system-ui,sans-serif;
+  --f-texto:"Segoe UI",system-ui,-apple-system,sans-serif;
+
+  /* nombres usados por vigas.html e index.html */
+  --bg:var(--papel);--card:var(--panel);--text:var(--tinta);--muted:var(--tinta-2);
+  --border:var(--linea);--blue:var(--acero);--green:var(--acero);--red:var(--alerta);
+
+  /* nombres usados por cerchas.html (--tension, --compression, --zero, --load
+     y --reaction no se tocan) */
+  --bg-body:var(--papel);--bg-card:var(--panel);--text-main:var(--tinta);--text-muted:var(--tinta-2);
+  --primary:var(--acero);--primary-hover:var(--acero-2);
+  --success:var(--acero);--success-hover:var(--acero-2);--danger:var(--alerta);
+}
+
+/* Base */
+*{font-family:var(--f-texto)}
+body{
+  background-color:var(--papel);
+  background-image:
+    linear-gradient(var(--rejilla) 1px,transparent 1px),
+    linear-gradient(90deg,var(--rejilla) 1px,transparent 1px);
+  background-size:24px 24px;
+  color:var(--tinta);
+}
+h1,h2,h3{font-family:var(--f-titulo);font-weight:600}
+input,select,td,.metric strong{font-variant-numeric:tabular-nums}
+
+/* Cabecera: cajetín de plano */
+header{
+  background:var(--tinta);
+  color:#fff;
+  border-bottom:3px solid var(--acero);
+  box-shadow:none;
+}
+header h1{letter-spacing:0}
+header p{color:#AEBBC8}
+.crumb{color:#AEBBC8}
+.mark{width:28px;height:28px;border-radius:3px;background:var(--acero);box-shadow:inset 0 0 0 1px #ffffff40}
+.pill{
+  border-radius:3px;border-color:var(--linea);background:var(--panel);
+  color:var(--tinta-2);font-size:12px;letter-spacing:0;text-transform:none;
+}
+
+/* Título de la página de vigas (la etiqueta superior repite la miga de pan) */
+.eyebrow{display:none}
+.title-row h1{font-size:26px;letter-spacing:0}
+.subtitle{font-size:14px;color:var(--tinta-2)}
+
+/* Botones */
+button,.btn{border-radius:4px;transition:background-color .12s,box-shadow .12s}
+.btn{background:var(--tinta)}
+.btn:hover{background:#26384A}
+.btn.primary,.btn-calc{background:var(--acero);box-shadow:inset 0 0 0 1px #ffffff33}
+.btn.primary:hover,.btn-calc:hover{background:var(--acero-2)}
+.btn.danger{background:var(--alerta)}
+.btn.danger:hover{background:#912018}
+.btn-example{background:#fff;color:var(--tinta)}
+.btn-example:hover{background:#E3EAF0}
+.btn-secondary{background:#26384A;box-shadow:inset 0 0 0 1px #ffffff2e}
+.btn-secondary:hover{background:#31475D}
+.btn-add{background:var(--panel);color:var(--tinta);box-shadow:inset 0 0 0 1px var(--linea)}
+.btn-add:hover{background:#E3EAF0}
+.btn-del{background:#FDECEA;color:var(--alerta)}
+.btn-del:hover{background:#FAD9D5}
+.remove{color:var(--alerta)}
+
+/* Tarjetas */
+.card{background:var(--panel);border:1px solid var(--linea);border-radius:6px;box-shadow:none}
+.card-head{background:#F3F6F8;border-bottom-color:var(--linea)}
+.card-header{border-bottom-color:var(--linea)}
+.card-head h2,.card-header h2{font-size:15px;color:var(--tinta);letter-spacing:0}
+
+/* Campos */
+.field label,.field-label,.load-type label,.load-field label,.metric .label{font-size:12px;color:var(--tinta-2)}
+.field .unit,.metric small,.hint,.foot,.equilibrium{font-size:12px;color:var(--tinta-2)}
+input[type=number],select,
+.field input,.table input,.table select,.load-item input,.load-item select{
+  background:#fff;border:1px solid #AEB9C5;border-radius:3px;color:var(--tinta);
+}
+.table input,.table select,.load-type select,.load-field input{font-size:12px}
+.table-container select{min-width:64px}
+.field input:focus-visible,.table input:focus-visible,.table select:focus-visible,
+.load-item input:focus-visible,.load-item select:focus-visible,
+input[type=number]:focus-visible,select:focus-visible{
+  outline:2px solid var(--acero);outline-offset:0;border-color:var(--acero);box-shadow:none;
+}
+button:focus-visible,.btn:focus-visible,a:focus-visible,summary:focus-visible{
+  outline:2px solid var(--acero);outline-offset:2px;
+}
+header :focus-visible{outline-color:#fff}
+
+/* Tablas */
+th,.table th,.reaction-table th{
+  background:#F3F6F8;color:var(--tinta-2);font-size:12px;font-weight:600;
+  letter-spacing:0;text-transform:none;
+}
+td,.table td,.reaction-table td{border-bottom-color:#E4E9EE}
+.id-badge{border-radius:3px}
+
+/* Cargas y diagramas (vigas) */
+.load-item{background:#F3F6F8;border-color:var(--linea);border-radius:4px}
+.diagram-box{border-color:var(--linea);border-radius:4px;padding:10px}
+.diagram-box h3,.reaction-title{font-size:13px;font-weight:600;color:var(--tinta)}
+.beam-chart{border-bottom-color:var(--linea)}
+.metric{background:#fff;border:1px solid var(--linea);border-radius:4px}
+.metric strong{font-family:var(--f-titulo);font-size:21px;font-weight:600;letter-spacing:0}
+.equilibrium b{color:var(--tinta)}
+
+/* Visor y leyenda (cerchas) */
+.canvas-wrapper{border-color:var(--linea);border-radius:4px}
+.canvas-controls{border-radius:4px;border-color:var(--linea)}
+.legend{background:var(--panel);border-color:var(--linea);border-radius:4px;font-size:13px}
+.badge-tension,.badge-compression,.badge-zero{border-radius:3px}
+
+/* Errores */
+.error,#errorBox{
+  background:#FDF1F0;border:1px solid #F1B5AE;border-left:4px solid var(--alerta);
+  color:#7A1A12;border-radius:4px;
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
