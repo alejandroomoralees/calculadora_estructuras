@@ -141,8 +141,8 @@ function solveForceMethod(xs,E,I,loads,supports){
  supportGroups.filter(s=>s.type==="Fixed")
   .sort((a,b)=>Math.abs(a.x-L/2)-Math.abs(b.x-L/2))
   .forEach(s=>candidates.push({type:"rotation",x:s.x}));
- supportGroups.filter(s=>s.type!=="Fixed")
-  .sort((a,b)=>(a.x>tol&&a.x<L-tol?0:1)-(b.x>tol&&b.x<L-tol?0:1)||Math.abs(a.x-L/2)-Math.abs(b.x-L/2))
+ supportGroups
+  .sort((a,b)=>(a.type==="Fixed"?1:0)-(b.type==="Fixed"?1:0)||(a.x>tol&&a.x<L-tol?0:1)-(b.x>tol&&b.x<L-tol?0:1)||Math.abs(a.x-L/2)-Math.abs(b.x-L/2))
   .forEach(s=>candidates.push({type:"vertical",x:s.x}));
  if(candidates.length<degree)return {degree,restraintCount,redundants:[],message:"No hay suficientes liberaciones candidatas."};
  function build(redundants){
