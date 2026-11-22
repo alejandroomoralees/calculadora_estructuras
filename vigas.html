@@ -168,6 +168,7 @@ function solveForceMethod(xs,E,I,loads,supports){
   for(const l of loads){const i=indexAt(l.x0);if(i<0)return null;if(l.type==="Point")F[2*i]+=l.v0;if(l.type==="Moment")F[releaseAt.has(i)?releaseAt.get(i).left:2*i+1]+=l.v0}
   const fixed=new Set();
   for(const s of supportGroups){const i=indexAt(s.x);const verticalRelease=redundants.some(r=>r.type==="vertical"&&Math.abs(r.x-s.x)<tol);if(!verticalRelease)fixed.add(2*i);if(s.type==="Fixed"&&!redundants.some(r=>r.type==="rotation"&&Math.abs(r.x-s.x)<tol))fixed.add(2*i+1)}
+  for(const r of momentReleases)fixed.add(2*r.node+1); // Remove the unused unsplit rotation DOF.
   const free=Array.from({length:nd},(_,i)=>i).filter(i=>!fixed.has(i));
   const solveLoad=P=>{
    if(!free.length)return new Float64Array(nd);
