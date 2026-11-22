@@ -326,7 +326,11 @@
                 grid-template-columns: 1fr;
             }
         }
-    </style>
+    .classification-badge{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:999px;padding:4px 9px;background:#f8fafc;color:#475569;font-size:11px;font-weight:700;white-space:nowrap}
+.classification-badge.static{background:#dcfce7;border-color:#86efac;color:#166534}
+.classification-badge.hyper{background:#fef3c7;border-color:#fcd34d;color:#92400e}
+.classification-badge.unstable{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+</style>
 <link rel="stylesheet" href="./estilo.css">
 </head>
 <body>
@@ -466,6 +470,7 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Esfuerzos Axiles en Barras</h2>
+                    <span class="classification-badge" id="trussClassification">Sin calcular</span>
                 </div>
                 <div class="table-container" style="max-height: 300px;">
                     <table>
@@ -605,9 +610,68 @@
         });
     }
 
+    function classifyTruss(m, r, j) {
+        const external = r - 3;
+        const internal = m - (2 * j - 3);
+        const missingExternal = Math.max(0, -external);
+        const missingInternal = Math.max(0, -internal);
+
+        if (missingExternal > 0) {
+            return {
+                label: "Hipostática externa",
+                detail: "Faltan " + missingExternal + " coacciones independientes para las 3 reacciones externas de equilibrio.",
+                kind: "unstable"
+            };
+        }
+        if (missingInternal > 0 && external === 0) {
+            return {
+                label: "Hipostática interna",
+                detail: "Faltan " + missingInternal + " barras según el criterio de Maxwell para una cercha plana.",
+                kind: "unstable"
+            };
+        }
+        if (missingInternal > 0 && external > 0) {
+            return {
+                label: "Hiperestática externa (grado " + external + ")",
+                detail: "El recuento externo indica " + external + " redundancias y el interno presenta un déficit de " + missingInternal + "; revisa geometría y apoyos.",
+                kind: "hyper"
+            };
+        }
+        if (external === 0 && internal === 0) {
+            return {
+                label: "Isostática",
+                detail: "Tres coacciones externas independientes y m = 2j − 3 barras.",
+                kind: "static"
+            };
+        }
+        if (external > 0 && internal > 0) {
+            return {
+                label: "Hiperestática externa e interna",
+                detail: "Grado externo: " + external + "; grado interno: " + internal + "; grado total: " + (external + internal) + ".",
+                kind: "hyper"
+            };
+        }
+        if (external > 0) {
+            return {
+                label: "Hiperestática externa (grado " + external + ")",
+                detail: "Hay reacciones redundantes respecto a las tres ecuaciones de equilibrio plano.",
+                kind: "hyper"
+            };
+        }
+        return {
+            label: "Hiperestática interna (grado " + internal + ")",
+            detail: "Hay barras redundantes respecto al recuento m = 2j − 3.",
+            kind: "hyper"
+        };
+    }
+
     // Funciones de actualización y edición
     function invalidateCalculation() {
         lastResults = null;
+        const badge = document.getElementById('trussClassification');
+        badge.textContent = 'Sin calcular';
+        badge.title = '';
+        badge.className = 'classification-badge';
         hideError();
         drawScene();
     }
@@ -731,6 +795,18 @@
         const box = document.getElementById('errorBox');
         box.innerText = "⚠️ " + msg;
         box.style.display = 'block';
+        const badge = document.getElementById('trussClassification');
+        badge.title = msg;
+        if (msg.toLowerCase().includes('hipostática')) {
+            badge.textContent = 'Hipostática / inestable';
+            badge.className = 'classification-badge unstable';
+        } else if (msg.toLowerCase().includes('inestable') || msg.toLowerCase().includes('estabilidad')) {
+            badge.textContent = 'Inestable / mecanismo';
+            badge.className = 'classification-badge unstable';
+        } else {
+            badge.textContent = 'Revisar modelo';
+            badge.className = 'classification-badge';
+        }
         alert(msg);
     }
 
@@ -951,7 +1027,8 @@
         lastResults = {
             U,
             bars: barResults,
-            reactions: Array.from(supportMap.values())
+            reactions: Array.from(supportMap.values()),
+            classification: classifyTruss(bars.length, numRestraints, numNodes)
         };
 
         renderResults();
@@ -1021,6 +1098,10 @@
     // =========================================================================
     function renderResults() {
         if (!lastResults) return;
+        const classBadge = document.getElementById('trussClassification');
+        classBadge.textContent = lastResults.classification.label;
+        classBadge.title = lastResults.classification.detail;
+        classBadge.className = 'classification-badge ' + lastResults.classification.kind;
 
         // 1. Tabla de Barras
         const barsBody = document.getElementById('resultsBarsBody');
