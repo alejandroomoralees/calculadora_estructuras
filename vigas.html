@@ -215,6 +215,18 @@ function renderProcedure(){
  }).join('<br>');
  const loadInfo=loadDetails||'<li>No hay cargas aplicadas.</li>';
  const supportInfo=supportDetails||'<li>No hay apoyos definidos.</li>';
+ const restrainedDofs=new Set();
+ supports.forEach(s=>{restrainedDofs.add('v:'+s.x);if(s.type==="Fixed")restrainedDofs.add('theta:'+s.x)});
+ const restraintCount=restrainedDofs.size,hyperDegree=Math.max(0,restraintCount-2);
+ const compatibilityLines=supports.map((s,i)=>'<li>Apoyo '+(i+1)+' en x = '+fmt(s.x,3)+' m: v('+fmt(s.x,3)+') = 0'+(s.type==="Fixed"?' y θ('+fmt(s.x,3)+') = 0':'')+'.</li>').join('');
+ const reactionNames=last.reactions.map((r,i)=>'R<sub>y,'+(i+1)+'</sub>'+(r.type==="Fixed"?' y M<sub>R,'+(i+1)+'</sub>':'')).join('; ');
+ const hyperstaticSection=
+ '<h3>4. Hiperestaticidad y compatibilidad</h3>'+
+ '<p>En este modelo de flexión hay <b>'+restraintCount+' coacciones independientes</b> y 2 ecuaciones de equilibrio global (ΣF<sub>y</sub> = 0 y ΣM = 0). El grado de hiperestaticidad es D<sub>s</sub> = max(0, r − 2) = <b>'+hyperDegree+'</b>. '+(hyperDegree>0?'Por tanto, hay '+hyperDegree+' reacción(es) redundante(s).':'No hay reacciones redundantes.')+'</p>'+
+ '<div class="equation">En los apoyos: v(x<sub>i</sub>) = 0; en cada empotramiento: θ(x<sub>i</sub>) = 0.'+
+ (hyperDegree>0?'<br>En el método de las fuerzas, si X<sub>j</sub> son las '+hyperDegree+' reacciones redundantes elegidas: δ<sub>i</sub><sup>(0)</sup> + Σ<sub>j=1</sub><sup>'+hyperDegree+'</sup> f<sub>ij</sub>X<sub>j</sub> = 0, i = 1,…,'+hyperDegree+'.':'<br>Al ser isostática, no se necesita una ecuación de compatibilidad redundante.')+'</div>'+
+ (compatibilityLines?'<ul>'+compatibilityLines+'</ul>':'')+
+ '<p><b>Reacciones del modelo:</b> '+(reactionNames||'ninguna')+'. Este programa usa el método matricial de rigidez: no escoge una reacción concreta para calcular las demás. Impone las compatibilidades anteriores, resuelve simultáneamente los desplazamientos y obtiene todas las reacciones con R = Ku − F. La ecuación con X<sub>j</sub> se muestra como formulación general del método de las fuerzas, no como el algoritmo ejecutado aquí.</p>';
  const momentLoadExpr=momentTerms.length?momentTerms.join(' + '):'0';
  const supportMoment=last.reactions.reduce((s,r)=>s+r.m,0);
  const reactionMomentExpr=reactionMomentTerms.length?reactionMomentTerms.join(' + '):'0';
@@ -225,10 +237,11 @@ function renderProcedure(){
  '<p>Se restringen los desplazamientos y giros definidos por los apoyos. Las cargas distribuidas se convierten en fuerzas nodales equivalentes integrando las funciones de forma cúbicas.</p>'+
  '<h3>2. Cargas introducidas</h3><ul>'+loadInfo+'</ul>'+
  '<h3>3. Reacciones</h3><div class="equation">r = K u − F<br>R<sub>y</sub> = F<sub>v</sub> − (Ku)<sub>v</sub> (positiva hacia arriba)<br>M<sub>R</sub> = (Ku)<sub>θ</sub> − F<sub>θ</sub> (positivo horario)</div><ul>'+supportInfo+'</ul>'+
- '<h3>4. Comprobación del equilibrio global</h3>'+
+ hyperstaticSection +
+ '<h3>5. Comprobación del equilibrio global</h3>'+
  '<div class="equation">ΣF<sub>abajo</sub> = ΣP + ΣQ = '+forceExpr+' = '+fmt(last.totalDown,4)+' kN<br>ΣM<sub>cargas, x=0</sub> = Σ(P·x) + Σ(M) + Σ(a·Q + J<sub>a</sub>) = '+momentLoadExpr+' = '+fmt(last.totalMoment,4)+' kN·m<br>Error vertical = ΣF<sub>abajo</sub> − ΣR<sub>y</sub> = '+fmt(last.totalDown,4)+' − '+fmt(last.reactions.reduce((s,r)=>s+r.ry,0),4)+' = <b>'+fmt(last.errV,6)+' kN</b><br>Error de momento = ΣM<sub>cargas</sub> + ΣM<sub>R</sub> − Σ(R<sub>y</sub>·x) = '+fmt(last.totalMoment,4)+' + ('+fmt(supportMoment,4)+') − ('+reactionMomentExpr+') = <b>'+fmt(last.errM,6)+' kN·m</b></div>'+
  '<p class="procedure-note">Convención: cargas hacia abajo y momentos horarios son positivos; reacciones verticales hacia arriba son positivas. J<sub>a</sub> es el primer momento de la carga distribuida respecto a su inicio.</p>'+
- '<h3>5. Cortante y momento en un corte</h3>'+
+ '<h3>6. Cortante y momento en un corte</h3>'+
  '<div class="equation">Para x distinto de una carga o apoyo, H(x−a)=1 si x&gt;a y 0 si x&lt;a.<br>V(x) = '+(Vterms.length?Vterms.join(' + '):'0')+'<br>M(x) = '+(Mterms.length?Mterms.join(' + '):'0')+'</div>'+
  (distDefs?'<p class="equation">'+distDefs+'</p>':'')+
  '<p class="procedure-note">Los términos de reacción y carga muestran los valores de este modelo. d<sub>i</sub>(x) limita cada carga distribuida a la parte situada a la izquierda del corte.</p>'+
