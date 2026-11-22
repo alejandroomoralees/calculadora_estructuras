@@ -126,6 +126,86 @@ function gaussian(A,b){
  for(let i=k+1;i<n;i++){const f=A[i][k]/A[k][k];if(!f)continue;for(let j=k;j<n;j++)A[i][j]-=f*A[k][j];b[i]-=f*b[k]}}
  const x=new Float64Array(n);for(let i=n-1;i>=0;i--){let v=b[i];for(let j=i+1;j<n;j++)v-=A[i][j]*x[j];x[i]=v/A[i][i];if(!Number.isFinite(x[i]))return null}return x;
 }
+function solveForceMethod(xs,E,I,loads,supports){
+ const n=xs.length,L=xs[n-1],tol=1e-8;
+ const indexAt=x=>{let lo=0,hi=n-1;while(lo<=hi){const m=(lo+hi)>>1;if(Math.abs(xs[m]-x)<tol)return m;if(xs[m]<x)lo=m+1;else hi=m-1}return -1};
+ const supportGroups=[];
+ for(const s of supports){let g=supportGroups.find(v=>Math.abs(v.x-s.x)<tol);if(!g){g={x:s.x,type:s.type};supportGroups.push(g)}else if(s.type==="Fixed")g.type="Fixed"}
+ const restraintCount=supportGroups.length+supportGroups.filter(s=>s.type==="Fixed").length;
+ const degree=Math.max(0,restraintCount-2);
+ if(!degree)return {degree:0,restraintCount,redundants:[],message:"La viga es isostática; no hay redundantes."};
+ const candidates=[];
+ supportGroups.filter(s=>s.type!=="Fixed"&&s.x>tol&&s.x<L-tol&&!loads.some(l=>l.type==="Moment"&&Math.abs(l.x0-s.x)<tol))
+  .sort((a,b)=>Math.abs(a.x-L/2)-Math.abs(b.x-L/2))
+  .forEach(s=>candidates.push({type:"moment",x:s.x}));
+ supportGroups.filter(s=>s.type==="Fixed")
+  .sort((a,b)=>Math.abs(a.x-L/2)-Math.abs(b.x-L/2))
+  .forEach(s=>candidates.push({type:"rotation",x:s.x}));
+ supportGroups.filter(s=>s.type!=="Fixed")
+  .sort((a,b)=>(a.x>tol&&a.x<L-tol?0:1)-(b.x>tol&&b.x<L-tol?0:1)||Math.abs(a.x-L/2)-Math.abs(b.x-L/2))
+  .forEach(s=>candidates.push({type:"vertical",x:s.x}));
+ if(candidates.length<degree)return {degree,restraintCount,redundants:[],message:"No hay suficientes liberaciones candidatas."};
+ function build(redundants){
+  const releaseAt=new Map();
+  redundants.forEach((r,j)=>{r.node=indexAt(r.x);r.j=j;if(r.type==="moment")releaseAt.set(r.node,r)});
+  const momentReleases=redundants.filter(r=>r.type==="moment");
+  const nd=2*n+2*momentReleases.length;
+  momentReleases.forEach((r,j)=>{r.left=2*n+2*j;r.right=r.left+1});
+  const thetaLeft=i=>releaseAt.has(i)?releaseAt.get(i).left:2*i+1;
+  const thetaRight=i=>releaseAt.has(i)?releaseAt.get(i).right:2*i+1;
+  const K=Array.from({length:nd},()=>new Float64Array(nd)),F=new Float64Array(nd);
+  for(let e=0;e<n-1;e++){
+   const x0=xs[e],x1=xs[e+1],le=x1-x0,k=E*I;
+   const ke=[[12*k/le**3,6*k/le**2,-12*k/le**3,6*k/le**2],[6*k/le**2,4*k/le,-6*k/le**2,2*k/le],[-12*k/le**3,-6*k/le**2,12*k/le**3,-6*k/le**2],[6*k/le**2,2*k/le,-6*k/le**2,4*k/le]];
+   const dofs=[2*e,thetaRight(e),2*e+2,thetaLeft(e+1)];
+   for(let r=0;r<4;r++)for(let c=0;c<4;c++)K[dofs[r]][dofs[c]]+=ke[r][c];
+   const fe=new Float64Array(4),gp=[-Math.sqrt(3/5),0,Math.sqrt(3/5)],gw=[5/9,8/9,5/9];
+   for(const l of loads.filter(v=>v.type==="Distributed"&&x0>=v.x0-1e-9&&x1<=v.x1+1e-9)){
+    for(let g=0;g<3;g++){const r=(gp[g]+1)/2,x=x0+r*le,q=l.v0+(l.v1-l.v0)*(x-l.x0)/(l.x1-l.x0),N1=1-3*r*r+2*r*r*r,N2=le*(r-2*r*r+r*r*r),N3=3*r*r-2*r*r*r,N4=le*(-r*r+r*r*r),w=gw[g]*le/2*q;fe[0]+=N1*w;fe[1]+=N2*w;fe[2]+=N3*w;fe[3]+=N4*w}
+   }
+   for(let j=0;j<4;j++)F[dofs[j]]+=fe[j];
+  }
+  for(const l of loads){const i=indexAt(l.x0);if(i<0)return null;if(l.type==="Point")F[2*i]+=l.v0;if(l.type==="Moment")F[releaseAt.has(i)?releaseAt.get(i).left:2*i+1]+=l.v0}
+  const fixed=new Set();
+  for(const s of supportGroups){const i=indexAt(s.x);const verticalRelease=redundants.some(r=>r.type==="vertical"&&Math.abs(r.x-s.x)<tol);if(!verticalRelease)fixed.add(2*i);if(s.type==="Fixed"&&!redundants.some(r=>r.type==="rotation"&&Math.abs(r.x-s.x)<tol))fixed.add(2*i+1)}
+  for(const r of momentReleases)fixed.add(2*r.node+1); // Remove the unused unsplit rotation DOF.
+  const free=Array.from({length:nd},(_,i)=>i).filter(i=>!fixed.has(i));
+  const solveLoad=P=>{
+   if(!free.length)return new Float64Array(nd);
+   const A=free.map(r=>Float64Array.from(free,c=>K[r][c])),b=Float64Array.from(free,r=>P[r]),uf=gaussian(A,b);
+   if(!uf)return null;const u=new Float64Array(nd);free.forEach((d,i)=>u[d]=uf[i]);return u;
+  };
+  const generalized=(u,r)=>{
+   const i=indexAt(r.x);
+   if(r.type==="moment"){const rr=releaseAt.get(i);return u[rr.right]-u[rr.left]}
+   if(r.type==="rotation")return u[2*i+1];
+   return -u[2*i];
+  };
+  const unitLoad=r=>{
+   const p=new Float64Array(nd),i=indexAt(r.x);
+   if(r.type==="moment"){const rr=releaseAt.get(i);p[rr.left]=-1;p[rr.right]=1}
+   else if(r.type==="rotation")p[2*i+1]=1;
+   else p[2*i]=-1;
+   return p;
+  };
+  const u0=solveLoad(F);if(!u0)return null;
+  const units=redundants.map(r=>{const p=unitLoad(r),u=solveLoad(p);return u?{p,u}:null});
+  if(units.some(v=>!v))return null;
+  const delta=redundants.map(r=>generalized(u0,r));
+  const flex=redundants.map((r,i)=>Float64Array.from(redundants,(s,j)=>generalized(units[j].u,r)));
+  const X=gaussian(flex.map(row=>Float64Array.from(row)),Float64Array.from(delta,v=>-v));
+  if(!X)return null;
+  return {degree,restraintCount,redundants,delta,flex,X};
+ }
+ let attempts=0,selected=null;
+ const pick=(start,chosen)=>{
+  if(selected||attempts>=250)return;
+  if(chosen.length===degree){attempts++;selected=build(chosen.map(r=>({...r})));return}
+  for(let i=start;i<=candidates.length-(degree-chosen.length);i++){pick(i+1,chosen.concat(candidates[i]));if(selected||attempts>=250)return}
+ };
+ pick(0,[]);
+ return selected||{degree,restraintCount,redundants:[],message:"No se encontró una estructura primaria estable con las liberaciones probadas."};
+}
 function solve(){
  $("errorBox").style.display="none";
  const L=number("length"),E=number("elasticity")*1e6,I=number("inertia")*1e-8;
@@ -176,6 +256,7 @@ function solve(){
  const totalMoment=loads.reduce((sum,l)=>{if(l.type==="Point")return sum+l.v0*l.x0;if(l.type==="Moment")return sum+l.v0;const d=l.x1-l.x0,g=(l.v1-l.v0)/d,q=l.v0*d+.5*g*d*d,first=l.v0*d*d/2+g*d*d*d/3;return sum+l.x0*q+first},0);
  const sumR=reactions.reduce((a,r)=>a+r.ry,0),sumReactionMoment=reactions.reduce((a,r)=>a+r.ry*r.x,0),sumSupportCouples=reactions.reduce((a,r)=>a+r.m,0),errV=totalDown-sumR,errM=totalMoment+sumSupportCouples-sumReactionMoment;
  last={L,xs,U,reactions,samples,extV:ext("V",true),extM:ext("M",true),extv:ext("v",true),extT:ext("theta",true),errV,errM,totalDown,totalMoment,stability:classifyBeam(restraintCount)};
+ last.forceMethod=solveForceMethod(xs,E,I,loads,supports);
  renderResults();drawChart(last);drawBeamDiagram(last);
 }
 function fmt(v,d=3){return Number.isFinite(v)?v.toFixed(d):"—"}
@@ -215,18 +296,39 @@ function renderProcedure(){
  }).join('<br>');
  const loadInfo=loadDetails||'<li>No hay cargas aplicadas.</li>';
  const supportInfo=supportDetails||'<li>No hay apoyos definidos.</li>';
- const restrainedDofs=new Set();
- supports.forEach(s=>{restrainedDofs.add('v:'+s.x);if(s.type==="Fixed")restrainedDofs.add('theta:'+s.x)});
- const restraintCount=restrainedDofs.size,hyperDegree=Math.max(0,restraintCount-2);
- const compatibilityLines=supports.map((s,i)=>'<li>Apoyo '+(i+1)+' en x = '+fmt(s.x,3)+' m: v('+fmt(s.x,3)+') = 0'+(s.type==="Fixed"?' y θ('+fmt(s.x,3)+') = 0':'')+'.</li>').join('');
- const reactionNames=last.reactions.map((r,i)=>'R<sub>y,'+(i+1)+'</sub>'+(r.type==="Fixed"?' y M<sub>R,'+(i+1)+'</sub>':'')).join('; ');
+ const fm=last.forceMethod;
+ const supportIndex=x=>{const i=supports.findIndex(v=>Math.abs(v.x-x)<1e-8);return i<0?"?":String.fromCharCode(65+i)};
+ const restraintCount=fm?.restraintCount||0,hyperDegree=fm?.degree||0;
+ const releaseLabel=r=>{
+  const tag=supportIndex(r.x),x=fmt(r.x,3);
+  if(r.type==="moment")return "Momento de continuidad M<sub>"+tag+"</sub> en el apoyo interior (x = "+x+" m)";
+  if(r.type==="rotation")return "Momento redundante del empotramiento M<sub>"+tag+"</sub> (x = "+x+" m)";
+  return "Reacción vertical redundante R<sub>y,"+tag+"</sub> (x = "+x+" m)";
+ };
+ const compatibilityLabel=r=>{
+  const tag=supportIndex(r.x),x=fmt(r.x,3);
+  if(r.type==="moment")return "Δθ<sub>"+tag+"</sub> = θ<sub>"+tag+"</sub><sup>+</sup> − θ<sub>"+tag+"</sub><sup>−</sup> = 0 (giro continuo)";
+  if(r.type==="rotation")return "θ<sub>"+tag+"</sub> = 0 (empotramiento)";
+  return "v("+x+") = 0 (apoyo sin desplazamiento vertical)";
+ };
+ const redundantInfo=fm&&fm.redundants.length?'<ol>'+fm.redundants.map((r,i)=>'<li><b>X<sub>'+(i+1)+'</sub></b>: '+releaseLabel(r)+'. Compatibilidad: '+compatibilityLabel(r)+'.</li>').join('')+'</ol>':'';
+ const hasMomentRelease=!!fm?.redundants.some(r=>r.type==="moment");
+ const momentRedundant=fm?.redundants.find(r=>r.type==="moment");
+ const momentCompatibility=momentRedundant?'<br>En el apoyo '+supportIndex(momentRedundant.x)+': Δθ = θ<sup>+</sup> − θ<sup>−</sup> = 0, y la redundante asociada es el momento de continuidad.':'';
+ const compatibilityEquations=fm&&fm.redundants.length?fm.redundants.map((r,i)=>{
+  const terms=fm.flex[i].map((v,j)=>(v<0?' − ':' + ')+fmt(Math.abs(v),6)+' X<sub>'+(j+1)+'</sub>').join('');
+  const numeric=fmt(fm.delta[i],6)+terms+' = 0';
+  return '<div class="equation">Δ<sub>'+(i+1)+'</sub><sup>(0)</sup> + Σ<sub>j=1</sub><sup>'+hyperDegree+'</sup> f<sub>'+(i+1)+'j</sub>X<sub>j</sub> = 0<br>'+numeric+'<br>Solución: '+fm.redundants.map((v,j)=>'X<sub>'+(j+1)+'</sub> = '+signed(fm.X[j])+(v.type==="vertical"?' kN':' kN·m')).join('; ')+'</div>';
+ }).join(''):'';
  const hyperstaticSection=
- '<h3>4. Hiperestaticidad y compatibilidad</h3>'+
- '<p>En este modelo de flexión hay <b>'+restraintCount+' coacciones independientes</b> y 2 ecuaciones de equilibrio global (ΣF<sub>y</sub> = 0 y ΣM = 0). El grado de hiperestaticidad es D<sub>s</sub> = max(0, r − 2) = <b>'+hyperDegree+'</b>. '+(hyperDegree>0?'Por tanto, hay '+hyperDegree+' reacción(es) redundante(s).':'No hay reacciones redundantes.')+'</p>'+
- '<div class="equation">En los apoyos: v(x<sub>i</sub>) = 0; en cada empotramiento: θ(x<sub>i</sub>) = 0.'+
- (hyperDegree>0?'<br>En el método de las fuerzas, si X<sub>j</sub> son las '+hyperDegree+' reacciones redundantes elegidas: δ<sub>i</sub><sup>(0)</sup> + Σ<sub>j=1</sub><sup>'+hyperDegree+'</sup> f<sub>ij</sub>X<sub>j</sub> = 0, i = 1,…,'+hyperDegree+'.':'<br>Al ser isostática, no se necesita una ecuación de compatibilidad redundante.')+'</div>'+
- (compatibilityLines?'<ul>'+compatibilityLines+'</ul>':'')+
- '<p><b>Reacciones del modelo:</b> '+(reactionNames||'ninguna')+'. Este programa usa el método matricial de rigidez: no escoge una reacción concreta para calcular las demás. Impone las compatibilidades anteriores, resuelve simultáneamente los desplazamientos y obtiene todas las reacciones con R = Ku − F. La ecuación con X<sub>j</sub> se muestra como formulación general del método de las fuerzas, no como el algoritmo ejecutado aquí.</p>';
+ '<h3>4. Método de las fuerzas: redundantes y compatibilidad</h3>'+
+ '<p>Hay <b>'+restraintCount+' coacciones independientes</b> frente a 2 ecuaciones de equilibrio; el grado de hiperestaticidad es D<sub>s</sub> = r − 2 = <b>'+hyperDegree+'</b>. '+(hyperDegree===0?'La viga es isostática y no necesita liberar redundantes.':fm&&fm.redundants.length?'Se libera una redundante por cada grado de hiperestaticidad.':'No se pudo formar una estructura primaria estable con las liberaciones disponibles: '+(fm?.message||'revisa la disposición de apoyos.'))+'</p>'+
+ (fm&&fm.redundants.length?'<p><b>Estructura primaria:</b> se liberan las siguientes acciones y se resuelven las cargas originales.'+(hasMomentRelease?' En cada apoyo interior seleccionado se conserva el apoyo vertical y se libera el momento de continuidad creando dos giros independientes.':'')+'</p>'+redundantInfo+
+ '<p>El motor matricial obtiene los giros o desplazamientos de la estructura liberada, primero con las cargas originales y luego con una acción unitaria por redundante. Los coeficientes f<sub>ij</sub> son los desplazamientos compatibles causados por esas acciones unitarias.</p>'+
+ '<div class="equation">[f<sub>ij</sub>]{X<sub>j</sub>} = −{Δ<sub>i</sub><sup>(0)</sup>}'+momentCompatibility+'</div>'+
+ compatibilityEquations+
+ '<p>El motor de rigidez calcula las reacciones de la viga original, que aparecen en la tabla y se comprueban con el equilibrio global. Las redundantes de esta formulación se obtienen aparte mediante las compatibilidades mostradas arriba.</p>':
+ '<p>Si se trata de un caso hiperestático, la selección automática no encontró una liberación estable; los resultados mostrados proceden del método matricial de rigidez.</p>');
  const momentLoadExpr=momentTerms.length?momentTerms.join(' + '):'0';
  const supportMoment=last.reactions.reduce((s,r)=>s+r.m,0);
  const reactionMomentExpr=reactionMomentTerms.length?reactionMomentTerms.join(' + '):'0';
