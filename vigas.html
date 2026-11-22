@@ -9,6 +9,11 @@
 .wrap{width:min(1440px,calc(100% - 32px));margin:auto}a{color:inherit;text-decoration:none}
 header{background:#0f172a;color:#fff;padding:13px 0;margin-bottom:18px;box-shadow:0 2px 5px #0f172a1a}
 .bar{display:flex;align-items:center;gap:12px}.brand{display:flex;align-items:center;gap:9px;font-weight:700}.mark{display:grid;place-items:center;width:32px;height:32px;background:#0284c7;color:#fff;border-radius:7px;font-size:16px;font-weight:800}.crumb{color:#94a3b8;font-size:13px}.crumb b{color:#fff;font-weight:600}.head-right{margin-left:auto;display:flex;gap:10px;align-items:center}.pill{border:1px solid var(--border);border-radius:18px;padding:4px 9px;color:var(--muted);font-size:10px;letter-spacing:.04em;text-transform:uppercase;background:#f8fafc}
+.status-badges{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.classification-pill{display:inline-flex;align-items:center;border:1px solid #cbd5e1;border-radius:18px;padding:4px 9px;font-size:10px;font-weight:700;white-space:nowrap;background:#f8fafc;color:#475569}
+.classification-pill.isostatic{background:#dcfce7;border-color:#86efac;color:#166534}
+.classification-pill.hyperstatic{background:#fef3c7;border-color:#fcd34d;color:#92400e}
+.classification-pill.unstable{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
 main{padding:0 0 42px}.title-row{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}.title-row h1{font-size:25px;letter-spacing:-.025em;margin:0 0 3px}.subtitle{color:var(--muted);margin:0;font-size:13px}
 .btn{border:0;background:#334155;color:white;border-radius:6px;padding:8px 12px;font:600 13px "Segoe UI",system-ui,sans-serif;cursor:pointer}.btn:hover{background:#1e293b}.btn.primary{background:var(--green);color:#fff}.btn.primary:hover{background:#15803d}.btn.danger{background:var(--red);color:#fff}.btn.danger:hover{background:#b91c1c}.btn.small{padding:6px 9px;font-size:12px}
 .grid{display:grid;grid-template-columns:390px minmax(0,1fr);gap:16px;align-items:start}.stack{display:grid;gap:13px}.card{background:var(--card);border:1px solid var(--border);border-radius:9px;overflow:hidden;box-shadow:0 1px 3px #0f172a0b}.card-head{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid #e2e8f0;gap:12px}.card-head h2{font-size:14px;margin:0;font-weight:700;color:#1e293b}.card-body{padding:13px 14px}
@@ -64,7 +69,7 @@ main{padding:0 0 42px}.title-row{display:flex;justify-content:space-between;alig
 <div class="diagram-box" id="rotationPanel" hidden><h3>Giro</h3><canvas class="plot" id="rotationDiagram" aria-label="Diagrama de giro"></canvas></div>
 <div class="diagram-box" id="deflectionPanel" hidden><h3>Flecha</h3><canvas class="plot" id="deflectionDiagram" aria-label="Diagrama de flecha"></canvas></div>
 </div></div></div>
-<div class="card"><div class="card-head"><h2>Resumen de resultados</h2><span class="pill" id="modelStatus">Pendiente</span></div>
+<div class="card"><div class="card-head"><h2>Resumen de resultados</h2><div class="status-badges"><span class="pill" id="modelStatus">Pendiente</span><span class="classification-pill" id="stabilityBadge">Clasificación pendiente</span></div></div>
 <div class="hero-result" id="extrema"><div class="metric"><div class="label">Cortante máx.</div><strong>—</strong><small>kN</small></div><div class="metric"><div class="label">Momento máx.</div><strong>—</strong><small>kN·m</small></div><div class="metric"><div class="label">Flecha máx.</div><strong>—</strong><small>mm</small></div><div class="metric"><div class="label">Giro máx.</div><strong>—</strong><small>rad</small></div></div>
 <h3 class="reaction-title">Reacciones en apoyos</h3><div style="overflow:auto"><table class="reaction-table"><thead><tr><th>x (m)</th><th>Tipo</th><th>Ry (kN)</th><th>Momento (kN·m)</th></tr></thead><tbody id="reactionsBody"><tr><td colspan="4" style="text-align:center;color:#64748b">Pulsa Calcular para obtener resultados.</td></tr></tbody></table></div><div class="equilibrium" id="equilibrium">Equilibrio global: —</div></div>
 <div class="foot">Modelo de viga prismática, elástico lineal, con pequeñas deformaciones. Herramienta educativa; contrasta los resultados antes de usarlos en diseño.</div>
@@ -102,9 +107,17 @@ function renderLoads(){
 }
 function resetSummary(){ $("extrema").innerHTML='<div class="metric"><div class="label">Cortante máx.</div><strong>—</strong><small>kN</small></div><div class="metric"><div class="label">Momento máx.</div><strong>—</strong><small>kN·m</small></div><div class="metric"><div class="label">Flecha máx.</div><strong>—</strong><small>mm</small></div><div class="metric"><div class="label">Giro máx.</div><strong>—</strong><small>rad</small></div>'}
 function resetProcedure(){ $("procedureContent").innerHTML='<p class="procedure-note">Los resultados han cambiado. Vuelve a calcular para actualizar el procedimiento.</p>'}
-function invalidate(){last=null;$("modelStatus").textContent="Pendiente";resetSummary();resetProcedure();$("reactionsBody").innerHTML='<tr><td colspan="4" style="text-align:center;color:#64748b">Modelo modificado. Vuelve a calcular.</td></tr>';$("equilibrium").textContent="Equilibrio global: —";drawChart(null);drawBeamDiagram(null)}
+function setBeamStability(text,kind,detail){
+ const badge=$("stabilityBadge");badge.textContent=text;badge.className="classification-pill "+kind;badge.title=detail||"";
+}
+function classifyBeam(restraints){
+ if(restraints<2)return {label:"Hipostática / inestable",kind:"unstable",detail:"Hay "+restraints+" coacciones independientes; se necesitan 2 para el equilibrio de flexión."};
+ if(restraints===2)return {label:"Isostática",kind:"isostatic",detail:"2 coacciones independientes para las 2 ecuaciones de equilibrio de flexión."};
+ return {label:"Hiperestática (grado "+(restraints-2)+")",kind:"hyperstatic",detail:restraints+" coacciones independientes − 2 ecuaciones de equilibrio."};
+}
+function invalidate(){last=null;$("modelStatus").textContent="Pendiente";setBeamStability("Clasificación pendiente","", "");resetSummary();resetProcedure();$("reactionsBody").innerHTML='<tr><td colspan="4" style="text-align:center;color:#64748b">Modelo modificado. Vuelve a calcular.</td></tr>';$("equilibrium").textContent="Equilibrio global: —";drawChart(null);drawBeamDiagram(null)}
 function number(id){return Number($(id).value)}
-function fail(msg){$("errorBox").textContent=msg;$("errorBox").style.display="block";$("modelStatus").textContent="Revisar modelo";last=null;resetSummary();resetProcedure();drawChart(null);drawBeamDiagram(null)}
+function fail(msg){$("errorBox").textContent=msg;$("errorBox").style.display="block";$("modelStatus").textContent="Revisar modelo";setBeamStability(/singular|estabilidad|apoyos|coacciones/i.test(msg)?"Inestable / hipostática":"No clasificada",/singular|estabilidad|apoyos|coacciones/i.test(msg)?"unstable":"",msg);last=null;resetSummary();resetProcedure();drawChart(null);drawBeamDiagram(null)}
 function gaussian(A,b){
  const n=b.length;let scale=0;for(let i=0;i<n;i++)scale=Math.max(scale,Math.abs(A[i][i]));if(!scale)return null;
  const tol=scale*1e-11;
@@ -139,7 +152,7 @@ function solve(){
   for(let j=0;j<4;j++)F[dofs[j]]+=fe[j];
  }
  for(const l of loads){const i=indexAt(l.x0);if(i<0)return fail("No se pudo ubicar una carga en la malla.");if(l.type==="Point")F[2*i]+=l.v0;if(l.type==="Moment")F[2*i+1]+=l.v0}
- const fixed=new Array(nd).fill(false);for(const s of supports){const i=indexAt(s.x);fixed[2*i]=true;if(s.type==="Fixed")fixed[2*i+1]=true}
+ const fixed=new Array(nd).fill(false);for(const s of supports){const i=indexAt(s.x);fixed[2*i]=true;if(s.type==="Fixed")fixed[2*i+1]=true}const restraintCount=fixed.filter(Boolean).length;
  const free=[];for(let i=0;i<nd;i++)if(!fixed[i])free.push(i);
  const Kff=free.map(r=>Float64Array.from(free,c=>K[r][c]));const Ff=Float64Array.from(free,r=>F[r]);const uf=gaussian(Kff,Ff);
  if(!uf)return fail("La matriz es singular: revisa los apoyos y la estabilidad de la viga.");
@@ -162,7 +175,7 @@ function solve(){
  const totalDown=loads.reduce((sum,l)=>sum+(l.type==="Point"?l.v0:l.type==="Distributed"?0.5*(l.v0+l.v1)*(l.x1-l.x0):0),0);
  const totalMoment=loads.reduce((sum,l)=>{if(l.type==="Point")return sum+l.v0*l.x0;if(l.type==="Moment")return sum+l.v0;const d=l.x1-l.x0,g=(l.v1-l.v0)/d,q=l.v0*d+.5*g*d*d,first=l.v0*d*d/2+g*d*d*d/3;return sum+l.x0*q+first},0);
  const sumR=reactions.reduce((a,r)=>a+r.ry,0),sumReactionMoment=reactions.reduce((a,r)=>a+r.ry*r.x,0),sumSupportCouples=reactions.reduce((a,r)=>a+r.m,0),errV=totalDown-sumR,errM=totalMoment+sumSupportCouples-sumReactionMoment;
- last={L,xs,U,reactions,samples,extV:ext("V",true),extM:ext("M",true),extv:ext("v",true),extT:ext("theta",true),errV,errM,totalDown,totalMoment};
+ last={L,xs,U,reactions,samples,extV:ext("V",true),extM:ext("M",true),extv:ext("v",true),extT:ext("theta",true),errV,errM,totalDown,totalMoment,stability:classifyBeam(restraintCount)};
  renderResults();drawChart(last);drawBeamDiagram(last);
 }
 function fmt(v,d=3){return Number.isFinite(v)?v.toFixed(d):"—"}
@@ -227,7 +240,7 @@ function renderResults(){
  $("extrema").innerHTML=[["Cortante máx.",e.V,"kN",e.x],["Momento máx.",m.M,"kN·m",m.x],["Flecha máx.",v.v*1000,"mm",v.x],["Giro máx.",t.theta,"rad",t.x]].map(a=>`<div class="metric"><div class="label">${a[0]}</div><strong>${fmt(a[1],3)}</strong><small>${a[2]} · x = ${fmt(a[3],3)} m</small></div>`).join("");
  $("reactionsBody").innerHTML=last.reactions.map(r=>`<tr><td>${fmt(r.x,3)}</td><td>${r.type==="Fixed"?"Empotrado":r.type==="Pin"?"Articulado":"Rodillo"}</td><td>${fmt(r.ry,3)}</td><td>${r.type==="Fixed"?fmt(r.m,3):"—"}</td></tr>`).join("");
  $("equilibrium").innerHTML=`Equilibrio: cargas verticales = ${fmt(last.totalDown,4)} kN; reacciones = ${fmt(last.reactions.reduce((s,r)=>s+r.ry,0),4)} kN; error vertical = <b>${fmt(last.errV,6)} kN</b>. Momento respecto a x=0: error = <b>${fmt(last.errM,6)} kN·m</b>.`;
- $("modelStatus").textContent="Resuelto";renderProcedure();
+ $("modelStatus").textContent="Resuelto";setBeamStability(last.stability.label,last.stability.kind,last.stability.detail);renderProcedure();
 }
 function drawChart(data){
  $("rotationPanel").hidden=!$("rotationToggle").checked;
