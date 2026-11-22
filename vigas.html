@@ -311,6 +311,7 @@ function renderProcedure(){
   return "v("+x+") = 0 (apoyo sin desplazamiento vertical)";
  };
  const redundantInfo=fm&&fm.redundants.length?'<ol>'+fm.redundants.map((r,i)=>'<li><b>X<sub>'+(i+1)+'</sub></b>: '+releaseLabel(r)+'. Compatibilidad: '+compatibilityLabel(r)+'.</li>').join('')+'</ol>':'';
+ const hasMomentRelease=!!fm?.redundants.some(r=>r.type==="moment");
  const momentRedundant=fm?.redundants.find(r=>r.type==="moment");
  const momentCompatibility=momentRedundant?'<br>En el apoyo '+supportIndex(momentRedundant.x)+': Δθ = θ<sup>+</sup> − θ<sup>−</sup> = 0, y la redundante asociada es el momento de continuidad.':'';
  const compatibilityEquations=fm&&fm.redundants.length?fm.redundants.map((r,i)=>{
@@ -321,7 +322,7 @@ function renderProcedure(){
  const hyperstaticSection=
  '<h3>4. Método de las fuerzas: redundantes y compatibilidad</h3>'+
  '<p>Hay <b>'+restraintCount+' coacciones independientes</b> frente a 2 ecuaciones de equilibrio; el grado de hiperestaticidad es D<sub>s</sub> = r − 2 = <b>'+hyperDegree+'</b>. '+(hyperDegree===0?'La viga es isostática y no necesita liberar redundantes.':fm&&fm.redundants.length?'Se libera una redundante por cada grado de hiperestaticidad.':'No se pudo formar una estructura primaria estable con las liberaciones disponibles: '+(fm?.message||'revisa la disposición de apoyos.'))+'</p>'+
- (fm&&fm.redundants.length?'<p><b>Estructura primaria:</b> se liberan las siguientes acciones y se resuelven las cargas originales. En el apoyo interior seleccionado se conserva el apoyo vertical; se libera el momento de continuidad creando dos giros independientes.</p>'+redundantInfo+
+ (fm&&fm.redundants.length?'<p><b>Estructura primaria:</b> se liberan las siguientes acciones y se resuelven las cargas originales.'+(hasMomentRelease?' En cada apoyo interior seleccionado se conserva el apoyo vertical y se libera el momento de continuidad creando dos giros independientes.':'')+'</p>'+redundantInfo+
  '<p>El motor matricial obtiene los giros o desplazamientos de la estructura liberada, primero con las cargas originales y luego con una acción unitaria por redundante. Los coeficientes f<sub>ij</sub> son los desplazamientos compatibles causados por esas acciones unitarias.</p>'+
  '<div class="equation">[f<sub>ij</sub>]{X<sub>j</sub>} = −{Δ<sub>i</sub><sup>(0)</sup>}'+momentCompatibility+'</div>'+
  compatibilityEquations+
