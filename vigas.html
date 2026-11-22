@@ -325,7 +325,7 @@ function renderProcedure(){
  '<p>El motor matricial obtiene los giros o desplazamientos de la estructura liberada, primero con las cargas originales y luego con una acción unitaria por redundante. Los coeficientes f<sub>ij</sub> son los desplazamientos compatibles causados por esas acciones unitarias.</p>'+
  '<div class="equation">[f<sub>ij</sub>]{X<sub>j</sub>} = −{Δ<sub>i</sub><sup>(0)</sup>}'+momentCompatibility+'</div>'+
  compatibilityEquations+
- '<p>Se aplican las redundantes calculadas a la estructura primaria. Las reacciones verticales y los momentos de apoyo restantes se recuperan por equilibrio y se cotejan con la solución completa de rigidez que alimenta los diagramas y la tabla de resultados.</p>':
+ '<p>El motor de rigidez calcula las reacciones de la viga original, que aparecen en la tabla y se comprueban con el equilibrio global. Las redundantes de esta formulación se obtienen aparte mediante las compatibilidades mostradas arriba.</p>':
  '<p>Si se trata de un caso hiperestático, la selección automática no encontró una liberación estable; los resultados mostrados proceden del método matricial de rigidez.</p>');
  const momentLoadExpr=momentTerms.length?momentTerms.join(' + '):'0';
  const supportMoment=last.reactions.reduce((s,r)=>s+r.m,0);
