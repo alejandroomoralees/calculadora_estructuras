@@ -332,6 +332,37 @@ function renderProcedure(){
  const momentLoadExpr=momentTerms.length?momentTerms.join(' + '):'0';
  const supportMoment=last.reactions.reduce((s,r)=>s+r.m,0);
  const reactionMomentExpr=reactionMomentTerms.length?reactionMomentTerms.join(' + '):'0';
+ const pivotX=supports.length?supports[0].x:0,pivotName=supportIndex(pivotX);
+ const loadMomentAboutA=last.totalMoment-pivotX*last.totalDown;
+ const reactionMomentAboutA=last.reactions.reduce((sum,r)=>sum+r.ry*(r.x-pivotX),0);
+ const momentErrorAboutA=loadMomentAboutA+supportMoment-reactionMomentAboutA;
+ const reactionForceNames=last.reactions.map((r,i)=>'R<sub>y,'+supportIndex(r.x)+'</sub>').join(' + ')||'0';
+ const reactionForceValues=last.reactions.map(r=>signed(r.ry)).join(' + ')||'0';
+ const verticalLoadLines=loads.map((l,i)=>l.type==='Point'?'P'+(i+1)+' = '+signed(l.v0)+' kN':l.type==='Distributed'?'Q'+(i+1)+' = (q<sub>0</sub>+q<sub>1</sub>)l/2 = '+signed(.5*(l.v0+l.v1)*(l.x1-l.x0))+' kN':null).filter(Boolean);
+ const verticalLoadsSubstitution=verticalLoadLines.length?verticalLoadLines.join('; '):'sin cargas verticales';
+ const pointMomentA=loads.map((l,i)=>{
+  if(l.type==='Point')return 'P'+(i+1)+'/A: ('+fmt(l.v0,3)+'·('+fmt(l.x0,3)+'−'+fmt(pivotX,3)+')) = '+signed(l.v0*(l.x0-pivotX))+' kN·m';
+  if(l.type==='Moment')return 'M'+(i+1)+': '+signed(l.v0)+' kN·m';
+  const d=l.x1-l.x0,Q=.5*(l.v0+l.v1)*d,J=.5*l.v0*d*d+(l.v1-l.v0)*d*d/3;
+  return 'q'+(i+1)+'/A: (('+fmt(l.x0,3)+'−'+fmt(pivotX,3)+')·'+fmt(Q,3)+' + '+fmt(J,3)+') = '+signed((l.x0-pivotX)*Q+J)+' kN·m';
+ }).filter(Boolean);
+ const supportCoupleExpr=last.reactions.filter(r=>r.type==='Fixed').map(r=>'M<sub>R,'+supportIndex(r.x)+'</sub> = '+signed(r.m)+' kN·m').join(' + ')||'0';
+ const reactionMomentAboutExpr=last.reactions.map(r=>'('+signed(r.ry)+'·('+fmt(r.x,3)+'−'+fmt(pivotX,3)+'))').join(' + ')||'0';
+ const uniqueSupports=last.reactions.filter((r,i,a)=>a.findIndex(v=>Math.abs(v.x-r.x)<1e-8)===i);
+ let isostaticSolutionStep='';
+ if(hyperDegree===0&&uniqueSupports.length===2&&uniqueSupports.every(r=>r.type!=='Fixed')){
+  const a=uniqueSupports[0],b=uniqueSupports[1],arm=b.x-a.x;
+  if(Math.abs(arm)>1e-8)isostaticSolutionStep='<div class="equation">Al ser isostática y tener dos reacciones verticales:<br>R<sub>y,'+supportIndex(b.x)+'</sub> = ΣM<sub>'+supportIndex(a.x)+'</sub>(cargas)/(x<sub>'+supportIndex(b.x)+'</sub>−x<sub>'+supportIndex(a.x)+'</sub>) = '+fmt(loadMomentAboutA,4)+' / ('+fmt(arm,4)+') = <b>'+fmt(loadMomentAboutA/arm,4)+' kN</b><br>R<sub>y,'+supportIndex(a.x)+'</sub> = ΣP + ΣQ − R<sub>y,'+supportIndex(b.x)+'</sub> = '+fmt(last.totalDown,4)+' − ('+fmt(loadMomentAboutA/arm,4)+') = <b>'+fmt(last.totalDown-loadMomentAboutA/arm,4)+' kN</b></div>';
+ }else if(hyperDegree===0&&uniqueSupports.length===1&&uniqueSupports[0].type==='Fixed'){
+  isostaticSolutionStep='<div class="equation">Para un único empotramiento '+supportIndex(uniqueSupports[0].x)+': R<sub>y</sub> = ΣP + ΣQ = <b>'+fmt(last.totalDown,4)+' kN</b>; M<sub>R</sub> = −ΣM<sub>'+supportIndex(uniqueSupports[0].x)+'</sub>(cargas) = <b>'+fmt(-loadMomentAboutA,4)+' kN·m</b>.</div>';
+ }
+ const externalEquilibriumSection=
+ '<h3>5. Equilibrio externo paso a paso</h3>'+
+ '<p>Se toma como centro de momentos el primer apoyo, '+pivotName+', situado en x = '+fmt(pivotX,3)+' m. Convención: reacciones hacia arriba y momentos horarios son positivos; las cargas verticales positivas actúan hacia abajo.</p>'+
+ '<div class="equation">1) Fuerzas verticales: ΣF<sub>y</sub> = 0 ⇒ ΣR<sub>y</sub> − ΣP − ΣQ = 0<br>ΣR<sub>y</sub> = '+reactionForceNames+' = '+reactionForceValues+' kN<br>ΣP + ΣQ = '+(forceExpr||'0')+' kN ('+verticalLoadsSubstitution+')<br>Residual: ΣR<sub>y</sub> − ΣP − ΣQ = '+fmt(last.reactions.reduce((sum,r)=>sum+r.ry,0),4)+' − ('+fmt(last.totalDown,4)+') = <b>'+fmt(-last.errV,6)+' kN</b></div>'+
+ '<div class="equation">2) Momentos respecto a '+pivotName+': ΣM<sub>'+pivotName+'</sub> = 0<br>ΣM<sub>cargas,A</sub> = Σ[P<sub>i</sub>(x<sub>i</sub>−x<sub>A</sub>)] + Σ[(x<sub>0</sub>−x<sub>A</sub>)Q + J<sub>a</sub>] + ΣM<sub>i</sub><br>'+(pointMomentA.length?pointMomentA.join('<br>'):'ΣM<sub>cargas,A</sub> = 0')+'<br>ΣM<sub>cargas,A</sub> = '+fmt(loadMomentAboutA,4)+' kN·m<br>ΣM<sub>A</sub> = ΣM<sub>cargas,A</sub> + ΣM<sub>R</sub> − Σ[R<sub>y</sub>(x−x<sub>A</sub>)]<br>ΣM<sub>R</sub> = '+supportCoupleExpr+'<br>Σ[R<sub>y</sub>(x−x<sub>A</sub>)] = '+reactionMomentAboutExpr+' = '+fmt(reactionMomentAboutA,4)+' kN·m<br>Residual: ΣM<sub>'+pivotName+'</sub> = '+fmt(loadMomentAboutA,4)+' + ('+fmt(supportMoment,4)+') − ('+fmt(reactionMomentAboutA,4)+') = <b>'+fmt(momentErrorAboutA,6)+' kN·m</b></div>'+
+ isostaticSolutionStep+
+ '<p class="procedure-note">'+(hyperDegree===0?'Al ser isostática, estas dos ecuaciones globales determinan las dos reacciones independientes.':'En esta viga hiperestática, el equilibrio global por sí solo no determina todas las reacciones. La distribución restante se obtiene con las redundantes y las ecuaciones de compatibilidad del paso anterior; aquí se comprueba que las reacciones finales satisfacen el equilibrio externo.')+'</p>';
  const html=
  '<h3>1. Modelo de rigidez</h3>'+
  '<p>Viga de longitud L = <b>'+fmt(L,3)+' m</b>, E = <b>'+fmt(Ein,3)+' GPa</b>, I = <b>'+fmt(Iin,3)+' cm⁴</b>. Conversiones: E = '+fmt(E,3)+' kN/m², I = '+fmt(Iin*1e-8,8)+' m⁴ y EI = <b>'+fmt(EI,5)+' kN·m²</b>. La malla usada tiene '+(last.xs.length-1)+' elementos Euler–Bernoulli.</p>'+
@@ -340,9 +371,7 @@ function renderProcedure(){
  '<h3>2. Cargas introducidas</h3><ul>'+loadInfo+'</ul>'+
  '<h3>3. Reacciones</h3><div class="equation">r = K u − F<br>R<sub>y</sub> = F<sub>v</sub> − (Ku)<sub>v</sub> (positiva hacia arriba)<br>M<sub>R</sub> = (Ku)<sub>θ</sub> − F<sub>θ</sub> (positivo horario)</div><ul>'+supportInfo+'</ul>'+
  hyperstaticSection +
- '<h3>5. Comprobación del equilibrio global</h3>'+
- '<div class="equation">ΣF<sub>abajo</sub> = ΣP + ΣQ = '+forceExpr+' = '+fmt(last.totalDown,4)+' kN<br>ΣM<sub>cargas, x=0</sub> = Σ(P·x) + Σ(M) + Σ(a·Q + J<sub>a</sub>) = '+momentLoadExpr+' = '+fmt(last.totalMoment,4)+' kN·m<br>Error vertical = ΣF<sub>abajo</sub> − ΣR<sub>y</sub> = '+fmt(last.totalDown,4)+' − '+fmt(last.reactions.reduce((s,r)=>s+r.ry,0),4)+' = <b>'+fmt(last.errV,6)+' kN</b><br>Error de momento = ΣM<sub>cargas</sub> + ΣM<sub>R</sub> − Σ(R<sub>y</sub>·x) = '+fmt(last.totalMoment,4)+' + ('+fmt(supportMoment,4)+') − ('+reactionMomentExpr+') = <b>'+fmt(last.errM,6)+' kN·m</b></div>'+
- '<p class="procedure-note">Convención: cargas hacia abajo y momentos horarios son positivos; reacciones verticales hacia arriba son positivas. J<sub>a</sub> es el primer momento de la carga distribuida respecto a su inicio.</p>'+
+ externalEquilibriumSection+
  '<h3>6. Cortante y momento en un corte</h3>'+
  '<div class="equation">Para x distinto de una carga o apoyo, H(x−a)=1 si x&gt;a y 0 si x&lt;a.<br>V(x) = '+(Vterms.length?Vterms.join(' + '):'0')+'<br>M(x) = '+(Mterms.length?Mterms.join(' + '):'0')+'</div>'+
  (distDefs?'<p class="equation">'+distDefs+'</p>':'')+
