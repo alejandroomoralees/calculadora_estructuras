@@ -350,9 +350,9 @@ function renderProcedure(){
   const d=l.x1-l.x0,Q=.5*(l.v0+l.v1)*d,J=.5*l.v0*d*d+(l.v1-l.v0)*d*d/3;
   return 'q'+(i+1)+'/A: (('+fmt(l.x0,3)+'−'+fmt(pivotX,3)+')·'+fmt(Q,3)+' + '+fmt(J,3)+') = <strong class="equilibrium-result">'+signed((l.x0-pivotX)*Q+J)+'</strong> kN·m';
  }).filter(Boolean);
+ const uniqueSupports=last.reactions.filter((r,i,a)=>a.findIndex(v=>Math.abs(v.x-r.x)<1e-8)===i);
  const supportCoupleExpr=last.reactions.filter(r=>r.type==='Fixed').map(r=>'M<sub>R,'+supportIndex(r.x)+'</sub> = <strong class="equilibrium-result">'+signed(r.m)+'</strong> kN·m').join(' + ')||'0';
  const reactionMomentAboutExpr=uniqueSupports.map(r=>'('+signed(r.ry)+'·('+fmt(r.x,3)+'−'+fmt(pivotX,3)+')) = <strong class="equilibrium-result">'+signed(r.ry*(r.x-pivotX))+'</strong>').join(' + ')||'0';
- const uniqueSupports=last.reactions.filter((r,i,a)=>a.findIndex(v=>Math.abs(v.x-r.x)<1e-8)===i);
  let isostaticSolutionStep='';
  if(hyperDegree===0&&uniqueSupports.length===2&&uniqueSupports.every(r=>r.type!=='Fixed')){
   const a=uniqueSupports[0],b=uniqueSupports[1],arm=b.x-a.x;
